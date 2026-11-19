@@ -1,0 +1,528 @@
+{
+  "utc": "2026-11-19T07:46:14.032177+00:00",
+  "steps": [
+    {
+      "id": "K-00",
+      "balancesSek": {},
+      "voucher": null,
+      "postingsSek": {},
+      "invoiceStatusPaidTotalOriginal_Ore": {},
+      "netVatSek": 0,
+      "debitSek": 0,
+      "creditSek": 0
+    },
+    {
+      "id": "K-01",
+      "balancesSek": {
+        "1930": 50000,
+        "2081": -50000
+      },
+      "voucher": 1,
+      "postingsSek": {
+        "1930": 50000,
+        "2081": -50000
+      },
+      "invoiceStatusPaidTotalOriginal_Ore": {},
+      "netVatSek": 0,
+      "debitSek": 50000,
+      "creditSek": 50000
+    },
+    {
+      "id": "K-02",
+      "balancesSek": {
+        "1510": 25000,
+        "1930": 50000,
+        "2081": -50000,
+        "2611": -5000,
+        "3041": -20000
+      },
+      "voucher": 2,
+      "postingsSek": {
+        "1510": 25000,
+        "3041": -20000,
+        "2611": -5000
+      },
+      "invoiceStatusPaidTotalOriginal_Ore": {
+        "1": [
+          "issued",
+          0,
+          2500000,
+          null
+        ]
+      },
+      "netVatSek": 5000,
+      "debitSek": 75000,
+      "creditSek": 75000
+    },
+    {
+      "id": "K-03",
+      "balancesSek": {
+        "1510": 15000,
+        "1930": 60000,
+        "2081": -50000,
+        "2611": -5000,
+        "3041": -20000
+      },
+      "voucher": 3,
+      "postingsSek": {
+        "1930": 10000,
+        "1510": -10000
+      },
+      "invoiceStatusPaidTotalOriginal_Ore": {
+        "1": [
+          "partial",
+          1000000,
+          2500000,
+          null
+        ]
+      },
+      "netVatSek": 5000,
+      "debitSek": 85000,
+      "creditSek": 85000
+    },
+    {
+      "id": "K-04",
+      "balancesSek": {
+        "1510": 25000,
+        "1930": 60000,
+        "2081": -50000,
+        "2611": -7000,
+        "3041": -28000
+      },
+      "voucher": 4,
+      "postingsSek": {
+        "1510": 10000,
+        "3041": -8000,
+        "2611": -2000
+      },
+      "invoiceStatusPaidTotalOriginal_Ore": {
+        "2": [
+          "issued",
+          0,
+          1000000,
+          null
+        ],
+        "1": [
+          "partial",
+          1000000,
+          2500000,
+          null
+        ]
+      },
+      "netVatSek": 7000,
+      "debitSek": 95000,
+      "creditSek": 95000
+    },
+    {
+      "id": "K-05",
+      "balancesSek": {
+        "1510": 15000,
+        "1930": 60000,
+        "2081": -50000,
+        "2611": -5000,
+        "3041": -20000
+      },
+      "voucher": 5,
+      "postingsSek": {
+        "1510": -10000,
+        "3041": 8000,
+        "2611": 2000
+      },
+      "invoiceStatusPaidTotalOriginal_Ore": {
+        "3": [
+          "credit",
+          0,
+          -1000000,
+          2
+        ],
+        "2": [
+          "credited",
+          0,
+          1000000,
+          null
+        ],
+        "1": [
+          "partial",
+          1000000,
+          2500000,
+          null
+        ]
+      },
+      "netVatSek": 5000,
+      "debitSek": 105000,
+      "creditSek": 105000
+    },
+    {
+      "id": "K-06",
+      "balancesSek": {
+        "1510": 15000,
+        "1930": 55000,
+        "2081": -50000,
+        "2611": -5000,
+        "2641": 1000,
+        "3041": -20000,
+        "5420": 4000
+      },
+      "voucher": 6,
+      "postingsSek": {
+        "5420": 4000,
+        "2641": 1000,
+        "1930": -5000
+      },
+      "invoiceStatusPaidTotalOriginal_Ore": {
+        "3": [
+          "credit",
+          0,
+          -1000000,
+          2
+        ],
+        "2": [
+          "credited",
+          0,
+          1000000,
+          null
+        ],
+        "1": [
+          "partial",
+          1000000,
+          2500000,
+          null
+        ]
+      },
+      "netVatSek": 4000,
+      "debitSek": 110000,
+      "creditSek": 110000
+    }
+  ],
+  "invoiceA_dueDateUI": "2026-10-31",
+  "receiptSha256": "ffb19c72441de045439db7274f6e9a1df1c0dd1a095e424cd591b7eb4ce9729a",
+  "jsonExport": {
+    "vouchers": 6,
+    "invoices": 3,
+    "auditEvents": 19,
+    "documentBytes": 829,
+    "reports": {
+      "income": 2000000,
+      "expenses": 400000,
+      "result": 1600000,
+      "receivables": 1500000,
+      "cash": 5500000,
+      "trialBalance": [
+        {
+          "number": "1510",
+          "name": "Kundfordringar",
+          "kind": "asset",
+          "balance": 1500000,
+          "debit": 3500000,
+          "credit": 2000000
+        },
+        {
+          "number": "1930",
+          "name": "Företagskonto",
+          "kind": "asset",
+          "balance": 5500000,
+          "debit": 6000000,
+          "credit": 500000
+        },
+        {
+          "number": "2081",
+          "name": "Aktiekapital",
+          "kind": "equity",
+          "balance": -5000000,
+          "debit": 0,
+          "credit": 5000000
+        },
+        {
+          "number": "2091",
+          "name": "Balanserat resultat",
+          "kind": "equity",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "2440",
+          "name": "Leverantörsskulder",
+          "kind": "liability",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "2611",
+          "name": "Utgående moms 25 %",
+          "kind": "liability",
+          "balance": -500000,
+          "debit": 200000,
+          "credit": 700000
+        },
+        {
+          "number": "2621",
+          "name": "Utgående moms 12 %",
+          "kind": "liability",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "2631",
+          "name": "Utgående moms 6 %",
+          "kind": "liability",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "2641",
+          "name": "Ingående moms",
+          "kind": "asset",
+          "balance": 100000,
+          "debit": 100000,
+          "credit": 0
+        },
+        {
+          "number": "2650",
+          "name": "Redovisningskonto moms",
+          "kind": "liability",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "3041",
+          "name": "Försäljning tjänster Sverige",
+          "kind": "income",
+          "balance": -2000000,
+          "debit": 800000,
+          "credit": 2800000
+        },
+        {
+          "number": "3044",
+          "name": "Försäljning momsfri – kräver bedömning",
+          "kind": "income",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "3740",
+          "name": "Öresutjämning",
+          "kind": "income",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "3960",
+          "name": "Valutakursvinster",
+          "kind": "income",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "4535",
+          "name": "Inköp tjänster från EU – manuell moms",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "5410",
+          "name": "Förbrukningsinventarier",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "5420",
+          "name": "Programvaror",
+          "kind": "expense",
+          "balance": 400000,
+          "debit": 400000,
+          "credit": 0
+        },
+        {
+          "number": "6110",
+          "name": "Kontorsmateriel",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "6570",
+          "name": "Bankkostnader",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "7960",
+          "name": "Valutakursförluster",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        }
+      ],
+      "monthly": [
+        {
+          "month": "2026-10",
+          "income": 2000000,
+          "expenses": 400000
+        }
+      ],
+      "balance": {
+        "assets": 7100000,
+        "liabilities": 500000,
+        "equity": 6600000
+      },
+      "profitLoss": [
+        {
+          "number": "3041",
+          "name": "Försäljning tjänster Sverige",
+          "kind": "income",
+          "balance": -2000000,
+          "debit": 800000,
+          "credit": 2800000
+        },
+        {
+          "number": "3044",
+          "name": "Försäljning momsfri – kräver bedömning",
+          "kind": "income",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "3740",
+          "name": "Öresutjämning",
+          "kind": "income",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "3960",
+          "name": "Valutakursvinster",
+          "kind": "income",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "4535",
+          "name": "Inköp tjänster från EU – manuell moms",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "5410",
+          "name": "Förbrukningsinventarier",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "5420",
+          "name": "Programvaror",
+          "kind": "expense",
+          "balance": 400000,
+          "debit": 400000,
+          "credit": 0
+        },
+        {
+          "number": "6110",
+          "name": "Kontorsmateriel",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "6570",
+          "name": "Bankkostnader",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        },
+        {
+          "number": "7960",
+          "name": "Valutakursförluster",
+          "kind": "expense",
+          "balance": 0,
+          "debit": 0,
+          "credit": 0
+        }
+      ]
+    }
+  },
+  "sieExport": {
+    "vouchers": {
+      "1": {
+        "date": "20261001",
+        "postingsOre": {
+          "1930": 5000000,
+          "2081": -5000000
+        }
+      },
+      "2": {
+        "date": "20261002",
+        "postingsOre": {
+          "1510": 2500000,
+          "3041": -2000000,
+          "2611": -500000
+        }
+      },
+      "3": {
+        "date": "20261003",
+        "postingsOre": {
+          "1930": 1000000,
+          "1510": -1000000
+        }
+      },
+      "4": {
+        "date": "20261004",
+        "postingsOre": {
+          "1510": 1000000,
+          "3041": -800000,
+          "2611": -200000
+        }
+      },
+      "5": {
+        "date": "20261005",
+        "postingsOre": {
+          "1510": -1000000,
+          "3041": 800000,
+          "2611": 200000
+        }
+      },
+      "6": {
+        "date": "20261006",
+        "postingsOre": {
+          "5420": 400000,
+          "2641": 100000,
+          "1930": -500000
+        }
+      }
+    },
+    "nonzeroBalancesOre": {
+      "1510": 1500000,
+      "1930": 5500000,
+      "2081": -5000000,
+      "2611": -500000,
+      "2641": 100000,
+      "3041": -2000000,
+      "5420": 400000
+    }
+  },
+  "browser": "156.0.8078.79"
+}

@@ -1,0 +1,4 @@
+date,description,amount,currency,reference
+2026-10-01,Aktiekapital Testkompassen AB,50000.00,SEK,KAP-001
+2026-10-03,Delbetalning faktura A,10000.00,SEK,BET-A-001
+2026-10-06,Fiktiva Programvarubutiken AB,-5000.00,SEK,KVITTO-001

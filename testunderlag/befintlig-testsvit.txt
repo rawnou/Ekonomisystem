@@ -1,0 +1,99 @@
+✔ AUD-A1 reproduktion: identisk delbetalning kan dubbelbokas vid retry (589.756426ms)
+✔ AUD-A2 reproduktion: felregistrerad betalning kan inte återställa reskontran (429.456907ms)
+✔ AUD-A3 reproduktion: motbokad bankhändelse är fortfarande markerad bokförd (415.1362ms)
+✔ AUD-A4 reproduktion: manuell kundfordran saknas i Att få betalt (437.413761ms)
+✔ AUD-A5 reproduktion: blank valutacell i uttrycklig valutakolumn blir SEK (415.064126ms)
+✔ AUD-A6 riskreproduktion: olika verkliga bankhändelser med samma metadata kolliderar (414.408376ms)
+✔ AUD-kontroll: 1000 syntetiska pris/antalsfall stämmer mot BigInt-referens (8.162711ms)
+✔ AUD-kontroll: misslyckad betalning lämnar belopp, serie och historik orörda (439.577677ms)
+✔ A1 observed: an issued December invoice cannot be paid next January or move to a new fiscal year (467.608298ms)
+✔ A2 observed: unsupported Unicode in customer is frozen into an issued invoice before PDF failure (454.193578ms)
+✔ A2 observed: unsupported Unicode in description is frozen into an issued invoice before PDF failure (446.05036ms)
+✖ A3 observed: backup verification accepts a broken voucher counter and restored posting fails (458.640339ms)
+✔ A4 observed: previous company settings and unused original CSV fields are absent from export (443.321752ms)
+✔ FL1 verified: successful voucher save + failed refresh leaves a retry that books twice (422.633148ms)
+✔ FL2 verified: customer fields advertised as optional are required by the domain (427.224598ms)
+✔ FL3 verified: saved draft cannot be inspected or corrected in the invoice view (499.797284ms)
+✔ FL4 verified: posted document association is absent from the ledger view (629.06691ms)
+✔ FL5 control: viewer UI omits write actions and escaping preserves injected customer text (613.452446ms)
+✔ INT-1 reproduktion: bokförd text accepteras men blockerar hela årets SIE-export (689.293568ms)
+✔ INT-2 reproduktion: två samtidiga identiska HTTP-delbetalningar bokförs båda (1371.169077ms)
+✔ REG-01 riskbevis: separat tjänstedatum ignoreras och PDF anger fakturadagen (441.319311ms)
+✔ REG-02 riskbevis: verifikation utan motpart eller underlag accepteras och saknar kompletteringslänk (466.963202ms)
+✔ REG-03 riskbevis: femårigt räkenskapsår accepteras och exporteras (463.530272ms)
+✔ REG-04 avgränsningskontroll: ej stödda momssatser avvisas atomärt (436.527408ms)
+✔ REG-05 omfattningsbevis: ingen momsrapport eller momsperiod finns i rapport-API (453.500595ms)
+✔ audit säkerhet: viewer nekas alla ekonomiska skrivrutter, accountant nekas adminrutter (983.920409ms)
+✔ audit säkerhet: utgången session, saknad CSRF och främmande Origin nekas (1046.851175ms)
+✔ audit reproduktion S1: påbörjad mutation godtas efter att sessionen loggats ut (856.003616ms)
+✔ audit säkerhet: låst datum nekas atomärt för faktura, betalning och bankbokning (478.657387ms)
+✔ audit reproduktion S2: backup godtar trasig nummerserie och återställd databas kan inte bokföra (544.807354ms)
+✔ audit reproduktion S3: DB-skydd kan återöppna fastställd faktura utan att ta bort triggers (492.69548ms)
+✔ audit reproduktion S3: DB-skydd tillåter nya rader på verifikation i låst period (444.562178ms)
+✔ audit reproduktion S4: misslyckade försök på okänt konto blockerar alla verkliga konton (972.630729ms)
+✔ audit reproduktion S5: företagsändring sparar endast version i behandlingshistoriken (430.552806ms)
+✔ exakt decimalhantering och avrundning utan binära penningberäkningar (1.934766ms)
+✔ 20 000 SEK + 25 %: fastställer 25 000 och balanserar 1510/3041/2611 (449.524465ms)
+✔ delbetalning, återstående skuld och överbetalning (501.006547ms)
+✔ full kredit är separat faktura och återför intäkter, moms och skuld (473.554447ms)
+✔ CSV-dubbletter mellan filer och manuella bankrader förhindras (423.313252ms)
+✔ trasig CSV och ogiltigt datum lämnar inga halva importer (456.936182ms)
+✔ obalanserad verifikation rullas tillbaka inklusive nummerserie (578.777987ms)
+✔ låst period, oföränderliga poster och spårbar motbokning (476.82237ms)
+✔ viewer och okänd användare får inte mutera eller exportera backupdata (407.4069ms)
+✔ utländsk valuta bevaras, kräver kurs och kan bara bokföras en gång (464.269005ms)
+✔ valutakursdifferens kan redovisas separat utan att ändra fordran (428.186481ms)
+✔ optimistisk versionskontroll och frysta fakturauppgifter (462.944868ms)
+✔ saknade eller brutna underlag avvisas och underlag arkiveras oföränderligt (436.693928ms)
+✔ backup och återställning verifierar data, checksumma och tar bort sessioner (479.167455ms)
+✔ HTTP integration: login, cookies, CSRF, roller, pengar, samtidighet och logout (2414.565266ms)
+✔ HTTP dokumentkontroll upptäcker skadat arkiverat innehåll (905.930663ms)
+✔ Q1: olika rapportperioder bevaras och ändrad fil dubbelimporterar inte (812.291561ms)
+✔ Q1: lika bankbelopp med olika referenser är skilda verkliga händelser (418.884308ms)
+✔ Q2: explicit felaktig valutamappning avvisas atomiskt, EUR förblir EUR (463.51009ms)
+✔ Q3: direkt bankklassificering mot1510 avvisas utan reskontra- eller bokföringsändring (437.648963ms)
+✔ Q4: gräns kontrolleras före utkast och högsta accepterade total kan fastställas (425.352405ms)
+✔ Q5: långa tillåtna uppgifter får flera giltigt refererade sidor och ryms geometriskt (431.529677ms)
+✔ Q1: tvetydiga bank- och royaltyrader avvisas före alla databasändringar (419.668693ms)
+✔ Q1: royaltyreferens, rapportperiod och källa bevarar separata händelser (465.343417ms)
+✔ oberoende: initiering fungerar och kan inte skriva över konton (524.965916ms)
+✔ oberoende: publika poster kan inte förfalska rättelse- eller fakturarelation (438.871993ms)
+✔ oberoende: ackumulerad gräns avvisar atomärt och lämnar rapporter tillgängliga (438.328859ms)
+✔ oberoende: historisk fakturasnapshot finns kvar i JSON-export efter företagsändring (434.425615ms)
+✔ oberoende: scrypt-hash motsvarar explicita granskade parametrar (2212.321007ms)
+✔ SIE4E fixture: capital, invoice and cost reconcile to independent known balances (24.68879ms)
+✔ Swedish letters are CP437 bytes, and built-in typographic account dashes are normalized (2.225324ms)
+✔ reversals are exported as separate balanced vouchers without deleting originals (4.085937ms)
+✔ a fiscal year spanning calendar years retains its actual boundaries (2.554093ms)
+✔ unsupported characters and control characters fail explicitly without replacement bytes (3.574361ms)
+✔ export refuses incomplete or unbalanced persisted vouchers (3.040879ms)
+✔ export does not silently omit persisted entries outside the configured fiscal year (2.134973ms)
+✔ registration day uses Stockholm even when UTC instant is previous day (3.184326ms)
+✔ account totals above Number safe integer retain every cent (5.491491ms)
+ℹ tests 72
+ℹ suites 0
+ℹ pass 71
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37269.152885
+
+✖ failing tests:
+
+test at tests/audit-architecture.test.mjs:49:1
+✖ A3 observed: backup verification accepts a broken voucher counter and restored posting fails (458.640339ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(resolve(dir).startsWith(resolve(tmpdir()) + "\\ekonomi-audit-architecture-"))
+
+      at TestContext.<anonymous> (file:///workspace/Ekonomisystem/tests/audit-architecture.test.mjs:69:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

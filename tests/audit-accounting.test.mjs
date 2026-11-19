@@ -18,39 +18,54 @@ function issued(s) {
 }
 const balance = (s, account) => s.reports().trialBalance.find(a => a.number === account).balance;
 
-test("AUD-A1 reproduktion: identisk delbetalning kan dubbelbokas vid retry", t => {
+test("AUD-A1: två olika betalnings-ID kan boka samma belopp, varje ID exakt en gång", t => {
   const s = fixture(t), id = issued(s);
-  const payload = { amount: "50", date: "2026-10-02", idempotencyKey: "same-synthetic-payment" };
-  s.payment(id, payload, 1);
-  s.payment(id, payload, 1);
-  assert.equal(s.get("SELECT paid FROM invoices WHERE id=?", id).paid, 10000);
+  const data = { amount: "50", date: "2026-10-02", idempotencyKey: "same-synthetic-payment" };
+  const first = s.payment(id, data, 1);
+  assert.deepEqual(s.payment(id, data, 1), first);
+  assert.equal(s.reports().cash, 5000);
+  assert.equal(s.reports().receivables, 7500);
+  assert.throws(() => s.payment(id, { ...data, amount: "49" }, 1), /andra uppgifter/);
+  const anotherInvoice = issued(s);
+  assert.throws(() => s.payment(anotherInvoice, data, 1), /andra uppgifter/);
+  s.payment(id, { ...data, idempotencyKey: "other-payment" }, 1);
   assert.equal(s.reports().cash, 10000);
-  assert.equal(s.reports().receivables, 2500);
+  assert.equal(s.reports().receivables, 15000);
   assert.equal(s.get("SELECT COUNT(*) n FROM vouchers WHERE invoice_id=?", id).n, 3);
 });
 
-test("AUD-A2 reproduktion: felregistrerad betalning kan inte återställa reskontran", t => {
+test("AUD-A2: matchad kundbetalning återförs i både reskontra, grundbok och bank", t => {
   const s = fixture(t), id = issued(s);
-  s.payment(id, { amount: "125", date: "2026-10-02" }, 1);
-  const payment = s.get("SELECT id FROM vouchers WHERE invoice_id=? ORDER BY number DESC", id);
-  assert.throws(() => s.reverse(payment.id, { date: "2026-10-03", reason: "Ingen verklig betalning skedde" }, 1), /Fakturarättelser/);
-  assert.throws(() => s.credit(id, { date: "2026-10-03" }, 1), /helt obetalda/);
-  // Manuell motbokning återställer huvudboken men saknar effekt på fakturans paid/status.
-  s.post({ date: "2026-10-03", text: "Manuell rättelse felaktig betalning", lines: [{ account: "1510", debit: "125" }, { account: "1930", credit: "125" }] }, 1);
+  const {paymentId} = s.payment(id, { amount: "100", date: "2026-10-02" }, 1);
+  s.bank({ date: "2026-10-02", description: "Kundbetalning", amount: "100", reference: "bank-100" }, 1);
+  const bank = s.state().bank[0];
+  assert.deepEqual(s.suggestBank(bank.id, 1).map(v => v.id), [paymentId]);
+  const before = s.state().vouchers.length;
+  assert.throws(() => s.bookBank(bank.id, { account: "3041", reviewed: true }, 1), /möjlig träff/);
+  s.matchBank(bank.id, { voucherId: paymentId }, 1);
+  assert.equal(s.state().vouchers.length, before);
+  assert.throws(() => s.bookBank(bank.id, { account: "3041", reviewed: true }, 1), /redan bokförd/);
+  const data = { date: "2026-10-03", reason: "Ingen verklig betalning skedde" };
+  const correction = s.reverse(paymentId, data, 1);
   assert.equal(balance(s, "1510"), 12500);
-  assert.equal(s.reports().receivables, 0);
-  assert.equal(s.get("SELECT status FROM invoices WHERE id=?", id).status, "paid");
-  assert.throws(() => s.payment(id, { amount: "125", date: "2026-10-04" }, 1), /obetald/);
+  assert.equal(s.reports().receivables, 12500);
+  assert.equal(s.reports().cash, 0);
+  assert.equal(s.state().bank[0].voucher_id, null);
+  assert.equal(s.state().invoices[0].status, "issued");
+  assert.throws(() => s.reverse(paymentId, data, 1));
+  assert.throws(() => s.reverse(correction.id, data, 1));
 });
 
-test("AUD-A3 reproduktion: motbokad bankhändelse är fortfarande markerad bokförd", t => {
+test("AUD-A3: motbokad bankhändelse öppnas för omklassificering", t => {
   const s = fixture(t);
   s.bank({ date: "2026-10-01", description: "Syntetisk kostnad", amount: "-100", reference: "audit-bank-1" }, 1);
   const p = s.bookBank(1, { account: "5410", reviewed: true }, 1);
   s.reverse(p.id, { date: "2026-10-02", reason: "Fel konto" }, 1);
   assert.equal(s.reports().cash, 0);
-  assert.equal(s.get("SELECT voucher_id FROM bank WHERE id=1").voucher_id, p.id);
-  assert.throws(() => s.bookBank(1, { account: "5420", reviewed: true }, 1), /redan bokförd/);
+  assert.equal(s.state().bank[0].voucher_id, null);
+  const replacement = s.bookBank(1, { account: "5420", reviewed: true }, 1);
+  assert.equal(s.state().bank[0].voucher_id, replacement.id);
+  assert.equal(s.reports().cash, -10000);
 });
 
 test("AUD-A4 reproduktion: manuell kundfordran saknas i Att få betalt", t => {
@@ -60,22 +75,32 @@ test("AUD-A4 reproduktion: manuell kundfordran saknas i Att få betalt", t => {
   assert.equal(s.reports().receivables, 0);
 });
 
-test("AUD-A5 reproduktion: blank valutacell i uttrycklig valutakolumn blir SEK", t => {
+test("AUD-A5: tom och okänd explicit valuta avvisas atomärt", t => {
   const s = fixture(t);
-  const csv = "date;description;amount;currency;reference\n2026-10-01;Syntetisk EUR-fil rad 1;100;EUR;eur1\n2026-10-02;Syntetisk EUR-fil rad 2;100;;eur2";
-  assert.equal(s.import({ source: "bank", csv, mapping: { currency: "currency" } }, 1).inserted, 2);
-  assert.equal(s.get("SELECT currency FROM bank WHERE reference='eur2'").currency, "SEK");
-  s.bookBank(2, { account: "3044", reviewed: true, exchangeRate: "11" }, 1);
-  assert.equal(s.reports().cash, 10000); // Om källan avsåg EUR skulle 110000 öre krävas.
-  assert.equal(s.get("SELECT exchange_rate FROM bank WHERE id=2").exchange_rate, "1.000000");
+  const before = s.state();
+  for (const currency of ["", "QQQ", "EU"]) {
+    const csv = `date;description;amount;currency;reference\n2026-10-01;Syntetisk EUR-fil rad 1;100;EUR;eur1\n2026-10-02;Syntetisk EUR-fil rad 2;100;${currency};eur2`;
+    assert.throws(() => s.import({ source: "bank", csv }, 1), /Rad 3:.*valutakod/);
+    assert.deepEqual(s.state(), before);
+  }
 });
 
-test("AUD-A6 riskreproduktion: olika verkliga bankhändelser med samma metadata kolliderar", t => {
+test("AUD-A6: två filer bevarar möjlig dubblett för uttrycklig granskning", t => {
   const s = fixture(t);
-  const event = { date: "2026-10-01", description: "Syntetiskt kortköp", amount: "-100", currency: "SEK" };
-  assert.equal(s.bank(event, 1).inserted, true);
-  assert.equal(s.bank(event, 1).inserted, false);
-  assert.equal(s.get("SELECT COUNT(*) n FROM bank").n, 1);
+  const header = "date;description;amount;currency;reference";
+  const row = "2026-10-01;Syntetiskt kortköp;-100;SEK;";
+  const first = { source: "bank", csv: `${header}\n${row}` };
+  const second = { source: "bank", csv: `${header}\n${row}\n2026-10-02;Annan;10;SEK;id-2` };
+  assert.equal(s.import(first, 1).inserted, 1);
+  assert.equal(s.import(second, 1).inserted, 2);
+  assert.equal(s.import(second, 1).duplicates, 2);
+  const pending = s.state().bank.find(b => b.review_status === "pending");
+  assert.throws(() => s.bookBank(pending.id, { account: "5410", reviewed: true }, 1), /dubbletten/);
+  s.reviewBank(pending.id, "distinct", 1);
+  s.bookBank(1, { account: "5410", reviewed: true }, 1);
+  assert.throws(() => s.bookBank(pending.id, { account: "5410", reviewed: true }, 1), /möjlig träff/);
+  s.bookBank(pending.id, { account: "5410", reviewed: true, distinctFrom: "1" }, 1);
+  assert.equal(s.reports().cash, -20000);
 });
 
 test("AUD-kontroll: 1000 syntetiska pris/antalsfall stämmer mot BigInt-referens", () => {

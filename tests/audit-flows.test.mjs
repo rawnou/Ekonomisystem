@@ -1,3 +1,4 @@
+import { webcrypto } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -17,6 +18,7 @@ function fixture(t) {
 async function ui(store, fetchImpl = async () => ok({})) {
   const handlers = {}, root = { innerHTML: "", addEventListener: (name, fn) => { handlers[name] = fn; } };
   const notice = { textContent: "", className: "" };
+  const storage = new Map();
   const app = await runInNewContext(`(async () => { ${source}\nreturn {
     init(s, role = 'admin') { session = { user: { role, name: 'Test' }, csrf: 'test' }; state = s; },
     customers, invoiceRows, invoices, ledger, reports, bank,
@@ -26,7 +28,8 @@ async function ui(store, fetchImpl = async () => ok({})) {
     fetch: (path, opts) => path === "/api/session" ? Promise.resolve(ok({})) : fetchImpl(path, opts),
     FormData: class { constructor(form) { return Object.entries(form.values)[Symbol.iterator](); } },
     confirm: () => true, prompt: () => null, setTimeout: () => 0, clearTimeout: () => {},
-    Intl, Date,
+    Intl, Date, TextEncoder, crypto: webcrypto,
+    localStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
   });
   app.init(store.state());
   return { app, handlers, root, notice };
@@ -46,7 +49,7 @@ function draft(store, description = "Kontrollera den här tjänstebeskrivningen"
   return store.invoice({ customerId, description, date: "2026-10-01", dueDate: "2026-10-31", quantity: "3", unitPrice: "100", vatRate: "25" }, 1).id;
 }
 
-test("FL1 verified: successful voucher save + failed refresh leaves a retry that books twice", async (t) => {
+test("FL1 verified: successful voucher save + failed refresh keeps the same booking identity", async (t) => {
   const store = fixture(t);
   let refreshes = 0, mutations = 0;
   const { handlers, notice } = await ui(store, async (path, options) => {
@@ -68,9 +71,9 @@ test("FL1 verified: successful voucher save + failed refresh leaves a retry that
   assert.equal(form.querySelector().disabled, false);
   await handlers.submit(event);
   assert.equal(mutations, 2);
-  assert.equal(store.state().vouchers.length, 2);
-  assert.equal(store.reports().expenses, 20000);
-  assert.equal(store.reports().cash, -20000);
+  assert.equal(store.state().vouchers.length, 1);
+  assert.equal(store.reports().expenses, 10000);
+  assert.equal(store.reports().cash, -10000);
 });
 
 test("FL2 verified: customer fields advertised as optional are required by the domain", async (t) => {

@@ -1,0 +1,865 @@
+{
+  "F-01": {
+    "customer": {
+      "id": 1,
+      "name": "Fiktiv Skärgårdskund AB",
+      "org_number": "559999-9903",
+      "email": "faktura@skargardskund.example.test",
+      "address": "Påhittsvägen 7, 111 11 Exempelstad"
+    },
+    "ledgerCount": 0
+  },
+  "F-02": {
+    "requiredHtml": [
+      "name"
+    ],
+    "onlyName": {
+      "status": 400,
+      "body": {
+        "error": "Obligatorisk text saknas eller är för lång."
+      }
+    },
+    "partialSave": false,
+    "editOrDeleteButtons": 0
+  },
+  "F-03": {
+    "invoice": {
+      "id": 1,
+      "number": null,
+      "status": "draft",
+      "net": 2000000,
+      "vat": 500000,
+      "total": 2500000,
+      "paid": 0,
+      "due_date": "2026-10-15",
+      "original_id": null
+    },
+    "vouchers": [],
+    "reports": {
+      "income": 0,
+      "cash": 0,
+      "receivables": 0,
+      "accounts": {
+        "1510": 0,
+        "1930": 0,
+        "2611": 0,
+        "3041": 0
+      }
+    },
+    "draftRow": "Utkast\tFiktiv Skärgårdskund AB\t2026-10-15\tUtkast\t25 000,00 kr\t\nFastställ"
+  },
+  "F-04": {
+    "draftActions": [
+      "Fastställ"
+    ],
+    "descriptionInRow": false,
+    "draftPdf": {
+      "status": 400,
+      "body": {
+        "error": "Endast fastställda fakturor kan exporteras till PDF."
+      }
+    }
+  },
+  "F-05": {
+    "invoice": {
+      "id": 1,
+      "number": 1,
+      "status": "issued",
+      "net": 2000000,
+      "vat": 500000,
+      "total": 2500000,
+      "paid": 0,
+      "due_date": "2026-10-15",
+      "original_id": null
+    },
+    "vouchers": [
+      {
+        "number": 1,
+        "date": "2026-10-01",
+        "lines": [
+          {
+            "account": "1510",
+            "debit": 2500000,
+            "credit": 0
+          },
+          {
+            "account": "3041",
+            "debit": 0,
+            "credit": 2000000
+          },
+          {
+            "account": "2611",
+            "debit": 0,
+            "credit": 500000
+          }
+        ]
+      }
+    ],
+    "reports": {
+      "income": 2000000,
+      "cash": 0,
+      "receivables": 2500000,
+      "accounts": {
+        "1510": 2500000,
+        "1930": 0,
+        "2611": -500000,
+        "3041": -2000000
+      }
+    },
+    "repeatedIssue": {
+      "status": 409,
+      "body": {
+        "error": "Fakturan har ändrats eller är redan fastställd."
+      }
+    },
+    "badDue": {
+      "status": 400,
+      "body": {
+        "error": "Kontrollera kund och förfallodatum."
+      }
+    }
+  },
+  "F-06": {
+    "browserDate": "2026-11-19",
+    "overdueRow": "1\tFiktiv Skärgårdskund AB\t2026-10-15\tFastställd\t25 000,00 kr\t\nPDF\nBetalning\nKreditera",
+    "overviewTasks": [
+      "Utkast att fastställa0",
+      "Obetalda fakturor1",
+      "Bankhändelser att klassificera0",
+      "Rapportposter att granska manuellt0"
+    ],
+    "paidEarly": {
+      "status": 400,
+      "body": {
+        "error": "Betalningen får inte föregå fakturadatum."
+      }
+    },
+    "vouchersAfter": 1
+  },
+  "F-07": {
+    "browserFilename": "faktura-1.pdf",
+    "bytes": 1477,
+    "pdfSHA256": "5bdc71bc5ac31202d7551c3bafd9061361db0b394379dc1e179e3c09af8d07ae",
+    "localEmlBytes": 2526
+  },
+  "F-07b": {
+    "sendControls": 0,
+    "uiActions": [
+      "PDF",
+      "Betalning",
+      "Kreditera"
+    ]
+  },
+  "F-08": {
+    "afterPartial": {
+      "invoice": {
+        "id": 1,
+        "number": 1,
+        "status": "partial",
+        "net": 2000000,
+        "vat": 500000,
+        "total": 2500000,
+        "paid": 1000000,
+        "due_date": "2026-10-15",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 1,
+          "date": "2026-10-01",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 2500000,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 2000000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 500000
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "date": "2026-10-16",
+          "lines": [
+            {
+              "account": "1930",
+              "debit": 1000000,
+              "credit": 0
+            },
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 1000000
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2000000,
+        "cash": 1000000,
+        "receivables": 1500000,
+        "accounts": {
+          "1510": 1500000,
+          "1930": 1000000,
+          "2611": -500000,
+          "3041": -2000000
+        }
+      }
+    },
+    "overpayment": {
+      "status": 400,
+      "body": {
+        "error": "Betalningen måste avse en obetald faktura och får inte överstiga restbeloppet."
+      }
+    },
+    "afterFull": {
+      "invoice": {
+        "id": 1,
+        "number": 1,
+        "status": "paid",
+        "net": 2000000,
+        "vat": 500000,
+        "total": 2500000,
+        "paid": 2500000,
+        "due_date": "2026-10-15",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 1,
+          "date": "2026-10-01",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 2500000,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 2000000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 500000
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "date": "2026-10-16",
+          "lines": [
+            {
+              "account": "1930",
+              "debit": 1000000,
+              "credit": 0
+            },
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 1000000
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "date": "2026-10-19",
+          "lines": [
+            {
+              "account": "1930",
+              "debit": 1500000,
+              "credit": 0
+            },
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 1500000
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2000000,
+        "cash": 2500000,
+        "receivables": 0,
+        "accounts": {
+          "1510": 0,
+          "1930": 2500000,
+          "2611": -500000,
+          "3041": -2000000
+        }
+      }
+    }
+  },
+  "F-09": {
+    "invoice": {
+      "id": 2,
+      "number": 2,
+      "status": "issued",
+      "net": 62,
+      "vat": 16,
+      "total": 78,
+      "paid": 0,
+      "due_date": "2026-10-16",
+      "original_id": null
+    },
+    "vouchers": [
+      {
+        "number": 4,
+        "date": "2026-10-02",
+        "lines": [
+          {
+            "account": "1510",
+            "debit": 78,
+            "credit": 0
+          },
+          {
+            "account": "3041",
+            "debit": 0,
+            "credit": 62
+          },
+          {
+            "account": "2611",
+            "debit": 0,
+            "credit": 16
+          }
+        ]
+      }
+    ],
+    "reports": {
+      "income": 2000062,
+      "cash": 2500000,
+      "receivables": 78,
+      "accounts": {
+        "1510": 78,
+        "1930": 2500000,
+        "2611": -500016,
+        "3041": -2000062
+      }
+    }
+  },
+  "F-10": {
+    "beforeCredit": {
+      "invoice": {
+        "id": 3,
+        "number": 3,
+        "status": "issued",
+        "net": 800000,
+        "vat": 200000,
+        "total": 1000000,
+        "paid": 0,
+        "due_date": "2026-10-17",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 5,
+          "date": "2026-10-03",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 1000000,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 800000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 200000
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2800062,
+        "cash": 2500000,
+        "receivables": 1000078,
+        "accounts": {
+          "1510": 1000078,
+          "1930": 2500000,
+          "2611": -700016,
+          "3041": -2800062
+        }
+      }
+    },
+    "original": {
+      "invoice": {
+        "id": 3,
+        "number": 3,
+        "status": "credited",
+        "net": 800000,
+        "vat": 200000,
+        "total": 1000000,
+        "paid": 0,
+        "due_date": "2026-10-17",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 5,
+          "date": "2026-10-03",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 1000000,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 800000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 200000
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2000062,
+        "cash": 2500000,
+        "receivables": 78,
+        "accounts": {
+          "1510": 78,
+          "1930": 2500000,
+          "2611": -500016,
+          "3041": -2000062
+        }
+      }
+    },
+    "credited": {
+      "invoice": {
+        "id": 4,
+        "number": 4,
+        "status": "credit",
+        "net": -800000,
+        "vat": -200000,
+        "total": -1000000,
+        "paid": 0,
+        "due_date": "2026-10-04",
+        "original_id": 3
+      },
+      "vouchers": [
+        {
+          "number": 6,
+          "date": "2026-10-04",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 1000000
+            },
+            {
+              "account": "3041",
+              "debit": 800000,
+              "credit": 0
+            },
+            {
+              "account": "2611",
+              "debit": 200000,
+              "credit": 0
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2000062,
+        "cash": 2500000,
+        "receivables": 78,
+        "accounts": {
+          "1510": 78,
+          "1930": 2500000,
+          "2611": -500016,
+          "3041": -2000062
+        }
+      }
+    },
+    "duplicateCredit": {
+      "status": 400,
+      "body": {
+        "error": "Full kreditering stöds för helt obetalda fakturor."
+      }
+    }
+  },
+  "F-11": {
+    "bankReference": "FIKT-D-DEL-01",
+    "expectedSingle": {
+      "invoice": {
+        "id": 5,
+        "number": 5,
+        "status": "partial",
+        "net": 40000,
+        "vat": 10000,
+        "total": 50000,
+        "paid": 10000,
+        "due_date": "2026-10-18",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 7,
+          "date": "2026-10-04",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 50000,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 40000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 10000
+            }
+          ]
+        },
+        {
+          "number": 8,
+          "date": "2026-10-20",
+          "lines": [
+            {
+              "account": "1930",
+              "debit": 10000,
+              "credit": 0
+            },
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 10000
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2040062,
+        "cash": 2510000,
+        "receivables": 40078,
+        "accounts": {
+          "1510": 40078,
+          "1930": 2510000,
+          "2611": -510016,
+          "3041": -2040062
+        }
+      }
+    },
+    "repeatedPayment": {
+      "status": 200,
+      "body": {
+        "id": 5
+      }
+    },
+    "doublePayment": {
+      "invoice": {
+        "id": 5,
+        "number": 5,
+        "status": "partial",
+        "net": 40000,
+        "vat": 10000,
+        "total": 50000,
+        "paid": 20000,
+        "due_date": "2026-10-18",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 7,
+          "date": "2026-10-04",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 50000,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 40000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 10000
+            }
+          ]
+        },
+        {
+          "number": 8,
+          "date": "2026-10-20",
+          "lines": [
+            {
+              "account": "1930",
+              "debit": 10000,
+              "credit": 0
+            },
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 10000
+            }
+          ]
+        },
+        {
+          "number": 9,
+          "date": "2026-10-20",
+          "lines": [
+            {
+              "account": "1930",
+              "debit": 10000,
+              "credit": 0
+            },
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 10000
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2040062,
+        "cash": 2520000,
+        "receivables": 30078,
+        "accounts": {
+          "1510": 30078,
+          "1930": 2520000,
+          "2611": -510016,
+          "3041": -2040062
+        }
+      }
+    }
+  },
+  "F-12": {
+    "paymentVoucher": 9,
+    "reverseWrong": {
+      "status": 400,
+      "body": {
+        "error": "Fakturarättelser ska göras via fakturaflödet. Övriga verifikationer får motbokas en gång."
+      }
+    },
+    "creditPartialInvoice": {
+      "status": 400,
+      "body": {
+        "error": "Full kreditering stöds för helt obetalda fakturor."
+      }
+    },
+    "vouchersAfter": 9
+  },
+  "F-13": {
+    "uiRates": [
+      "25 % · svensk försäljning"
+    ],
+    "rateResponses": {
+      "0": {
+        "status": 400,
+        "body": {
+          "error": "Första fakturaflödet stöder svenska tjänster med 25 % moms och positivt belopp."
+        }
+      },
+      "6": {
+        "status": 400,
+        "body": {
+          "error": "Första fakturaflödet stöder svenska tjänster med 25 % moms och positivt belopp."
+        }
+      },
+      "12": {
+        "status": 400,
+        "body": {
+          "error": "Första fakturaflödet stöder svenska tjänster med 25 % moms och positivt belopp."
+        }
+      }
+    }
+  },
+  "F-14": {
+    "correctGrossIfAllRows": 37500,
+    "multiOnly": {
+      "status": 400,
+      "body": {
+        "error": "Ange ett giltigt decimalbelopp som text."
+      }
+    },
+    "multiWithLegacyLine": {
+      "status": 200,
+      "body": {
+        "id": 6
+      }
+    },
+    "noSecondLine": {
+      "invoice": {
+        "id": 6,
+        "number": 6,
+        "status": "issued",
+        "net": 10000,
+        "vat": 2500,
+        "total": 12500,
+        "paid": 0,
+        "due_date": "2026-10-18",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 10,
+          "date": "2026-10-04",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 12500,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 10000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 2500
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2050062,
+        "cash": 2520000,
+        "receivables": 42578,
+        "accounts": {
+          "1510": 42578,
+          "1930": 2520000,
+          "2611": -512516,
+          "3041": -2050062
+        }
+      }
+    }
+  },
+  "F-15": {
+    "requestedGross": -5000,
+    "accidentalFullCredit": {
+      "invoice": {
+        "id": 7,
+        "number": 7,
+        "status": "credit",
+        "net": -10000,
+        "vat": -2500,
+        "total": -12500,
+        "paid": 0,
+        "due_date": "2026-10-06",
+        "original_id": 6
+      },
+      "vouchers": [
+        {
+          "number": 11,
+          "date": "2026-10-06",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 0,
+              "credit": 12500
+            },
+            {
+              "account": "3041",
+              "debit": 10000,
+              "credit": 0
+            },
+            {
+              "account": "2611",
+              "debit": 2500,
+              "credit": 0
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2040062,
+        "cash": 2520000,
+        "receivables": 30078,
+        "accounts": {
+          "1510": 30078,
+          "1930": 2520000,
+          "2611": -510016,
+          "3041": -2040062
+        }
+      }
+    },
+    "originalStatus": "credited"
+  },
+  "F-16": {
+    "emojiIssue": {
+      "invoice": {
+        "id": 8,
+        "number": 8,
+        "status": "issued",
+        "net": 40000,
+        "vat": 10000,
+        "total": 50000,
+        "paid": 0,
+        "due_date": "2026-10-18",
+        "original_id": null
+      },
+      "vouchers": [
+        {
+          "number": 12,
+          "date": "2026-10-04",
+          "lines": [
+            {
+              "account": "1510",
+              "debit": 50000,
+              "credit": 0
+            },
+            {
+              "account": "3041",
+              "debit": 0,
+              "credit": 40000
+            },
+            {
+              "account": "2611",
+              "debit": 0,
+              "credit": 10000
+            }
+          ]
+        }
+      ],
+      "reports": {
+        "income": 2080062,
+        "cash": 2520000,
+        "receivables": 80078,
+        "accounts": {
+          "1510": 80078,
+          "1930": 2520000,
+          "2611": -520016,
+          "3041": -2080062
+        }
+      }
+    },
+    "badPdf": {
+      "status": 400,
+      "body": {
+        "error": "Faktura-PDF stöder för närvarande latinska tecken. En uppgift innehåller tecken som kräver en inbäddad Unicode-font."
+      }
+    }
+  },
+  "F-17": {
+    "pendingDraft": 9,
+    "issueFirst": 10,
+    "invoiceNumber": 9,
+    "contentDisposition": "attachment; filename=\"faktura-10.pdf\""
+  }
+}

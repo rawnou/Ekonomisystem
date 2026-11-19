@@ -1,3 +1,4 @@
+import { validateFiscalYear } from "./fiscal.mjs";
 import { DomainError, today } from "./domain.mjs";
 import { validDate } from "./imports.mjs";
 
@@ -94,7 +95,7 @@ export function exportSIE(store) {
   if (!company) reject("företaget är inte konfigurerat.");
   const start = date(company.fiscal_start),
     end = date(company.fiscal_end);
-  if (start >= end) reject("räkenskapsåret är ogiltigt.");
+  validateFiscalYear(company.fiscal_start, company.fiscal_end);
   const org = String(company.org_number).replace("-", "");
   if (!/^\d{10}$/u.test(org)) reject("organisationsnumret är ogiltigt.");
 

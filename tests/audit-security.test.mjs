@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { request } from "node:http";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname, basename } from "node:path";
 import { Store } from "../src/domain.mjs";
@@ -68,7 +69,7 @@ test("audit säkerhet: utgången session, saknad CSRF och främmande Origin neka
   }
 });
 
-test("audit reproduktion S1: påbörjad mutation godtas efter att sessionen loggats ut", async t => {
+test("audit säkerhet S1: återkallad session nekas före commit", async t => {
   const { s, origin, session } = await httpFixture(t);
   const headers = session(1);
   let observed;
@@ -92,8 +93,8 @@ test("audit reproduktion S1: påbörjad mutation godtas efter att sessionen logg
   assert.equal((await fetch(origin + "/api/logout", { method: "POST", headers, body: "{}" })).status, 200);
   assert.equal(s.get("SELECT COUNT(*) n FROM sessions").n, 0);
   pending.end(payload);
-  assert.equal(await result, 200, "Verifierat fel: gammal sessionskopia godtar skrivningen");
-  assert.equal(s.get("SELECT COUNT(*) n FROM vouchers").n, 1);
+  assert.equal(await result, 401);
+  assert.equal(s.get("SELECT COUNT(*) n FROM vouchers").n, 0);
   assert.equal((await fetch(origin + "/api/state", { headers })).status, 401);
 });
 
@@ -112,7 +113,7 @@ test("audit säkerhet: låst datum nekas atomärt för faktura, betalning och ba
   assert.equal(JSON.stringify(s.state()), before);
 });
 
-test("audit reproduktion S2: backup godtar trasig nummerserie och återställd databas kan inte bokföra", async t => {
+test("audit säkerhet S2: återställning avvisar eftersatt nummerserie trots korrekt filhash", async t => {
   const dir = mkdtempSync(join(tmpdir(), "ekonomi-audit-security-"));
   t.after(() => {
     const target = resolve(dir);
@@ -124,16 +125,20 @@ test("audit reproduktion S2: backup godtar trasig nummerserie och återställd d
   try {
     s.seed([{ email: "audit@example.test", name: "Syntetisk", password: "synthetic-audit-password" }]);
     s.post({ date: "2026-01-02", text: "Original", lines }, 1);
-    s.run("UPDATE counters SET value=0 WHERE name='voucher'");
-    assert.equal(verifyDatabase(s.path).vouchers, 1);
     const backup = join(dir, "backup.sqlite");
-    await makeBackup(s, backup);
-    restoreBackup(backup, join(dir, "restored.sqlite"));
-    const restored = new Store(join(dir, "restored.sqlite"));
+    const manifest = await makeBackup(s, backup);
+    const oldCopy = new Store(backup);
     try {
-      assert.throws(() => restored.post({ date: "2026-01-03", text: "Efter restore", lines }, 1), /UNIQUE constraint/);
-      assert.equal(restored.get("SELECT value FROM counters WHERE name='voucher'").value, 0);
-    } finally { restored.close(); }
+      oldCopy.run("UPDATE counters SET value=0 WHERE name='voucher'");
+    } finally {
+      oldCopy.close();
+    }
+    manifest.sha256 = createHash("sha256").update(readFileSync(backup)).digest("hex");
+    writeFileSync(backup + ".json", JSON.stringify(manifest));
+    assert.throws(() => verifyDatabase(backup), /nummerserie för verifikationer/);
+    const target = join(dir, "restored.sqlite");
+    assert.throws(() => restoreBackup(backup, target), /nummerserie för verifikationer/);
+    assert.equal(existsSync(target), false);
   } finally { s.close(); }
 });
 

@@ -1,0 +1,224 @@
+{
+  "A-03": {
+    "faktura": 1,
+    "verifikation": "A2",
+    "rest_ore": 100000,
+    "upprepade_api_status": [
+      409,
+      409
+    ],
+    "faststallelser_i_historik": 1,
+    "forekomst_i_verifikationer": 1
+  },
+  "A-01": {
+    "roller_i_chromium": [
+      "admin",
+      "accountant",
+      "viewer"
+    ],
+    "admin": {
+      "företag_version": 3,
+      "periodlåst": "2026-10-31",
+      "Hämta SIE": 200,
+      "Hämta JSON": 200
+    },
+    "bokförare": {
+      "registrerade": [
+        "kund",
+        "underlag",
+        "verifikation A1",
+        "faktura 1"
+      ],
+      "http": {
+        "läs företag och rapporter": 200,
+        "läs kvitto": 200,
+        "läs faktura-PDF": 200,
+        "ändra företag": 403,
+        "lås period": 403,
+        "SIE": 403,
+        "JSON": 403
+      }
+    },
+    "läsbehörig": {
+      "läs företag och rapporter": 200,
+      "läs kvitto": 200,
+      "läs faktura-PDF": 200,
+      "ändra företag": 403,
+      "lås period": 403,
+      "SIE": 403,
+      "JSON": 403,
+      "skapa kund": 403,
+      "spara utkast": 403,
+      "registrera betalning": 403,
+      "kreditera faktura": 403,
+      "bokför verifikation": 403,
+      "motboka verifikation": 403
+    },
+    "inga_mutationer_av_nekade_försök": true
+  },
+  "A-02a": {
+    "ui_kolumner": [
+      "Tid",
+      "Händelse",
+      "Användare"
+    ],
+    "händelser": {
+      "customer.create": {
+        "id": 6,
+        "actor": 2,
+        "actor_name": "Bo Testbokförare",
+        "created_at": "2026-11-19T07:47:48.347Z",
+        "detail": {
+          "id": 1
+        }
+      },
+      "document.archive": {
+        "id": 7,
+        "actor": 2,
+        "actor_name": "Bo Testbokförare",
+        "created_at": "2026-11-19T07:47:48.526Z",
+        "detail": {
+          "id": 1,
+          "hash": "9da2b8e66ae687264a047373d1fb225d6f66b716a900a9c83a960ce7ebf0452b",
+          "previousId": null
+        }
+      },
+      "invoice.draft": {
+        "id": 9,
+        "actor": 2,
+        "actor_name": "Bo Testbokförare",
+        "created_at": "2026-11-19T07:47:49.067Z",
+        "detail": {
+          "id": 1
+        }
+      },
+      "invoice.issue": {
+        "id": 11,
+        "actor": 2,
+        "actor_name": "Bo Testbokförare",
+        "created_at": "2026-11-19T07:47:49.160Z",
+        "detail": {
+          "id": 1,
+          "number": 1
+        }
+      },
+      "voucher.post": {
+        "id": 10,
+        "actor": 2,
+        "actor_name": "Bo Testbokförare",
+        "created_at": "2026-11-19T07:47:49.160Z",
+        "detail": {
+          "id": 2,
+          "number": 2,
+          "documentId": null
+        }
+      },
+      "company.update": {
+        "id": 12,
+        "actor": 1,
+        "actor_name": "Ada Testadmin",
+        "created_at": "2026-11-19T07:47:49.399Z",
+        "detail": {
+          "version": 3
+        }
+      },
+      "period.lock": {
+        "id": 13,
+        "actor": 1,
+        "actor_name": "Ada Testadmin",
+        "created_at": "2026-11-19T07:47:49.513Z",
+        "detail": {
+          "through": "2026-10-31"
+        }
+      },
+      "auth.logout": {
+        "id": 16,
+        "actor": 3,
+        "actor_name": "Liv Testläsare",
+        "created_at": "2026-11-19T07:47:50.547Z",
+        "detail": {}
+      }
+    },
+    "gammal_cookie_efter_logout": 401
+  },
+  "A-02b": {
+    "fore_bank": "Fiktivbank A",
+    "efter_bank": "Fiktivbank B",
+    "detalj_i_api": {
+      "version": 3
+    },
+    "företagsändringar_i_json_export": [
+      {
+        "version": 2
+      },
+      {
+        "version": 3
+      }
+    ],
+    "bankvärden_i_historik": false
+  },
+  "A-07": {
+    "rubriker_i_inställningar": [
+      "Företagsuppgifter",
+      "Lås bokföringsperiod",
+      "Behandlingshistorik"
+    ],
+    "kontohantering_sedd_i_inställningar": false
+  },
+  "A-04": {
+    "startlogg": [
+      "Automatisk lokal backup verifierad.",
+      "Ekonomisystem lokalt: http://127.0.0.1:37771"
+    ],
+    "manifest": [
+      {
+        "format": 1,
+        "vouchers": 0,
+        "documents": 0
+      },
+      {
+        "format": 1,
+        "vouchers": 2,
+        "documents": 1
+      }
+    ],
+    "samma_state_efter_omstart": true
+  },
+  "A-05": {
+    "cli_create": "Backup verifierad: <temporärkatalog>/manual.sqlite {\n  format: 1,\n  createdAt: '2026-11-19T07:47:51.670Z',\n  sha256: '3f9b9cff69cc31e8b7e211319b09e28413e3760db27e9e175daa087274155643',\n  vouchers: 2,\n  documents: 1\n}",
+    "cli_restore": "Återställd och verifierad: { vouchers: 2, documents: 1 }",
+    "sha256_kvitto": "9da2b8e66ae687264a047373d1fb225d6f66b716a900a9c83a960ce7ebf0452b",
+    "sha256_faktura_pdf": "dfdfe97d04386e0a25f811328659a4356d08029b424e6621b29e19b848083593",
+    "bank_ore": -25000,
+    "kundfordran_ore": 100000,
+    "resultat_ore": 60000,
+    "historikrader_jämförda": 16,
+    "ekonomiska_state_falt_jamforda": [
+      "company",
+      "accounts",
+      "customers",
+      "invoices",
+      "vouchers",
+      "bank",
+      "imports",
+      "documents",
+      "periods",
+      "reports"
+    ],
+    "dokumentreferens": 1,
+    "sessioner_efter_aterstallning": 0,
+    "gammal_session_http": 401,
+    "ny_bokning_efter_aterstallning": "A3",
+    "befintligt_mal": "Avvisat",
+    "trasig_kontrollsumma": "Avvisad, ingen måldatabas skapades"
+  },
+  "A-06": {
+    "max_befintlig_verifikation": 2,
+    "felinjicerad_raknare": 1,
+    "cli_create": "Backup verifierad: <temporärkatalog>/felprov/backup.sqlite {\n  format: 1,\n  createdAt: '2026-11-19T07:47:54.647Z',\n  sha256: '244dfbe0349232bbd0284127535696a6ddaf5254286f9a1185313fb3f04b0d54',\n  vouchers: 2,\n  documents: 1\n}",
+    "cli_restore": "Återställd och verifierad: { vouchers: 2, documents: 1 }",
+    "bokforing_http": 400,
+    "bokforing_fel": "UNIQUE constraint failed: vouchers.number",
+    "oforandrad_bokforing": true
+  }
+}

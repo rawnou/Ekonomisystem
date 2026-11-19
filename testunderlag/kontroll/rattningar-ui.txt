@@ -1,0 +1,3 @@
+I-13/I-14 Chromium: 500 kr kundbetalning och 5 000 kr kvitto matchade utan ny verifikation.
+F-12 Chromium: återföring via A8 öppnade betalningens bankrad och återställde 1510 till 15 000 kr.
+I-12 Chromium: båda referenslösa avgifter sparades, den möjliga dubbletten godkändes separat.

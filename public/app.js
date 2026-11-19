@@ -3,7 +3,9 @@ let session,
   state,
   page = "overview",
   busy = false,
-  selectedBankId = null;
+  selectedBankId = null,
+  bankCandidates = [],
+  bankRate = "";
 const pages = [
   ["overview", "Översikt", "◈"],
   ["invoices", "Fakturor", "▤"],
@@ -69,6 +71,17 @@ async function api(path, method = "GET", data) {
       result.error || `Förfrågan misslyckades (${response.status}).`,
     );
   return result;
+}
+async function bookingKey(path, payload) {
+  const input = new TextEncoder().encode(JSON.stringify(payload));
+  const digest = await crypto.subtle.digest("SHA-256", input);
+  const hash = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  const slot = `balans:booking:${session.user.id}:${path}:${hash}`;
+  const id = localStorage.getItem(slot) || crypto.randomUUID();
+  localStorage.setItem(slot, id);
+  return { id, clear: () => localStorage.removeItem(slot) };
 }
 function field(label, name, type = "text", value = "", extra = "") {
   return `<label>${esc(label)}<input name="${esc(name)}" type="${type}" value="${esc(value)}" ${extra}></label>`;
@@ -140,6 +153,7 @@ function accountOptions(excluded = []) {
   );
 }
 function ledger() {
+  const reversed = new Set(state.vouchers.map((v) => v.reversal_of));
   return `<div class="stack">${canWrite() ? card("Ny manuell verifikation", `<form data-form="voucher"><div class="form-grid">${field("Bokföringsdatum", "date", "date", today(), "required")}${field("Beskrivning", "text", "text", "", "required")}${select("Underlag (valfritt)", "documentId", '<option value="">Inget underlag</option>' + state.documents.map((d) => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join(""))}</div><p class="help">Ange positiva belopp i antingen debet eller kredit. Summorna måste vara lika.</p><div id="voucher-lines">${voucherLine()}${voucherLine()}</div><button class="secondary small" type="button" data-action="add-line">+ Lägg till rad</button>${submit("Bokför verifikation")}</form>`) : ""}${card(
     "Verifikationer",
     table(
@@ -148,7 +162,7 @@ function ledger() {
         .sort((a, b) => b.number - a.number)
         .map(
           (v) =>
-            `<tr><td><strong>A${esc(v.number)}</strong></td><td>${esc(v.date)}</td><td>${esc(v.text)}</td><td>${(v.lines || []).map((l) => `${esc(l.account)}: D ${money(l.debit)} / K ${money(l.credit)}`).join("<br>")}</td><td>${canWrite() ? `<button class="small danger" data-action="reverse" data-id="${esc(v.id)}">Motboka</button>` : ""}</td></tr>`,
+            `<tr><td><strong>A${esc(v.number)}</strong></td><td>${esc(v.date)}</td><td>${esc(v.text)}</td><td>${(v.lines || []).map((l) => `${esc(l.account)}: D ${money(l.debit)} / K ${money(l.credit)}`).join("<br>")}</td><td>${canWrite() && !reversed.has(v.id) && (!v.invoice_id || (!v.reversal_of && v.lines.some((l) => l.account === "1510" && l.credit > 0) && v.lines.some((l) => l.account === "1930" && l.debit > 0))) ? `<button class="small danger" data-action="reverse" data-id="${esc(v.id)}">${v.invoice_id ? "Återför betalning" : "Motboka"}</button>` : ""}</td></tr>`,
         ),
     ),
   )}</div>`;
@@ -172,7 +186,7 @@ function bank() {
         .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
         .map(
           (b) =>
-            `<tr><td>${esc(b.date)}</td><td>${esc(b.description)}</td><td>${money(b.amount).replace(" kr", "")}</td><td>${esc(b.currency)}</td><td>${esc(b.reference)}</td><td>${b.voucher_id ? `<span class="badge">Bokförd</span>` : canWrite() && b.source === "bank" ? `<button class="small secondary" data-action="classify" data-id="${esc(b.id)}">Klassificera</button>` : `<span class="badge warning">Manuell granskning</span>`}</td></tr>`,
+            `<tr><td>${esc(b.date)}</td><td>${esc(b.description)}</td><td>${money(b.amount).replace(" kr", "")}</td><td>${esc(b.currency)}</td><td>${esc(b.reference)}</td><td>${b.voucher_id ? `<span class="badge">Bokförd · A${esc(state.vouchers.find((v) => v.id === b.voucher_id)?.number)}</span>` : b.review_status === "duplicate" ? `<span class="badge">Bekräftad dubblett</span>` : canWrite() && b.source === "bank" ? `<button class="small secondary" data-action="${b.review_status === "pending" ? "bank-review" : "classify"}" data-id="${esc(b.id)}">${b.review_status === "pending" ? "Granska möjlig dubblett" : "Klassificera"}</button>` : `<span class="badge warning">Manuell granskning</span>`}</td></tr>`,
         ),
     ),
   )}${card(
@@ -312,7 +326,29 @@ root.addEventListener("submit", async (event) => {
         account: data.account,
         exchangeRate: data.exchangeRate,
         reviewed: form.elements.reviewed.checked,
+        distinctFrom: form.elements.distinct?.checked
+          ? bankCandidates.map((v) => v.id).join(",")
+          : undefined,
       };
+    }
+    if (["bank-match", "bank-match-by-number"].includes(type)) {
+      path = "/api/bank/" + encodeURIComponent(selectedBankId) + "/match";
+      payload = data.voucherId
+        ? { voucherId: data.voucherId, exchangeRate: bankRate }
+        : { voucherNumber: data.voucherNumber, exchangeRate: data.exchangeRate };
+    }
+    if (type === "bank-search") {
+      const matches = await api(
+        `/api/bank/${encodeURIComponent(selectedBankId)}/matches?exchangeRate=${encodeURIComponent(data.exchangeRate)}`,
+      );
+      bankRate = data.exchangeRate;
+      bankCandidates = matches;
+      render();
+      return;
+    }
+    if (type === "bank-review") {
+      path = "/api/bank/" + encodeURIComponent(selectedBankId) + "/review";
+      payload = { decision: data.decision };
     }
     if (type === "voucher") {
       path = "/api/vouchers";
@@ -371,9 +407,14 @@ root.addEventListener("submit", async (event) => {
       payload = { name: data.name || file.name, type: file.type, data: base64 };
       if (data.previousId) payload.previousId = data.previousId;
     }
+    const booking = ["voucher", "bank"].includes(type)
+      ? await bookingKey(path, payload)
+      : null;
+    if (booking) payload.idempotencyKey = booking.id;
     const result = await api(path, method, payload);
     selectedBankId = null;
     await refresh();
+    booking?.clear();
     if (type === "import") {
       notify(
         `Import klar: ${result.inserted ?? 0} nya transaktioner, ${result.duplicates ?? 0} dubbletter.`,
@@ -411,12 +452,28 @@ root.addEventListener("click", async (event) => {
   if (!button || busy) return;
   const action = button.dataset.action,
     id = button.dataset.id;
-  if (action === "classify") {
-    selectedBankId = id;
-    render();
-    document
-      .querySelector("#classification")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (action === "classify" || action === "bank-review") {
+    busy = true;
+    try {
+      const matches =
+        action === "classify"
+          ? await api(`/api/bank/${encodeURIComponent(id)}/matches`)
+          : [];
+      selectedBankId = id;
+      bankCandidates = matches;
+      bankRate =
+        state.bank.find((row) => String(row.id) === id)?.currency === "SEK"
+          ? "1"
+          : "";
+      render();
+      document
+        .querySelector("#classification")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (error) {
+      notify(error.message, true);
+    } finally {
+      busy = false;
+    }
     return;
   }
   if (action === "remove-line") {
@@ -482,8 +539,12 @@ root.addEventListener("click", async (event) => {
       payload = { reason, date };
       path = `/api/vouchers/${encodeURIComponent(id)}/reverse`;
     }
+    const booking =
+      action === "payment" ? await bookingKey(path, payload) : null;
+    if (booking) payload.idempotencyKey = booking.id;
     await api(path, "POST", payload);
     await refresh();
+    booking?.clear();
     notify("Åtgärden är genomförd och sparad.");
   } catch (error) {
     notify(error.message, true);
@@ -505,7 +566,36 @@ function bankClassification() {
   if (!canWrite()) return "";
   const b = state.bank.find((b) => String(b.id) === String(selectedBankId));
   if (!b) return "";
-  return `<section class="card" id="classification"><h2>Klassificera bankhändelse</h2><p class="help">${esc(b.date)} · ${esc(b.description)} · ${money(b.amount).replace(" kr", "")} ${esc(b.currency)}</p><form data-form="bank-book"><div class="form-grid">${select("Motkonto", "account", accountOptions(["1930", "1510"]))}${field("Växelkurs · SEK per valutaenhet", "exchangeRate", "text", b.currency === "SEK" ? "1" : "", 'required inputmode="decimal"')}<label class="checkbox wide"><input type="checkbox" name="reviewed" required>Jag har granskat kontering, belopp, växelkurs och moms. Eventuell moms bokförs separat.</label></div><p class="help">Händelsen bokförs mot bankkonto 1930. Kundbetalningar registreras via fakturans knapp Betalning så att kundfordran stäms av.</p>${submit("Bokför bankhändelse")}</form></section>`;
+  if (b.review_status === "pending") {
+    const similar = state.bank.filter(
+      (row) =>
+        row.id !== b.id &&
+        row.source === "bank" &&
+        row.date === b.date &&
+        row.amount === b.amount &&
+        row.currency === b.currency &&
+        row.description === b.description &&
+        !row.reference,
+    );
+    return `<section class="card" id="classification"><h2>Granska möjlig dubblett</h2>
+      <p>Bankrad ${esc(b.id)} · ${esc(b.description)} · ${esc(b.date)} · ${money(b.amount)} ${esc(b.currency)}</p>
+      <p>Liknande bankrader ${similar.map((row) => esc(row.id)).join(", ")}</p>
+      <form data-form="bank-review">${select("Bedömning", "decision",  '<option value="">Välj bedömning</option><option value="distinct">Separat bankhändelse</option><option value="duplicate">Dubblett</option>')}${submit("Spara bedömning")}</form></section>`;
+  }
+  const available = bankCandidates.filter((v) => !v.bank_id);
+  const suggestions = bankCandidates.length
+    ? `<p>Möjliga träffar i bokföringen</p>
+    <ul>${bankCandidates.map((v) => `<li>A${esc(v.number)} · ${esc(v.date)} · ${esc(v.text)}${v.bank_id ? " · redan matchad" : ""}</li>`).join("")}</ul>`
+    : "";
+  const matchForm = available.length
+    ? `<form data-form="bank-match">${select("Befintlig verifikation", "voucherId", available.map((v) => `<option value="${esc(v.id)}">A${esc(v.number)} · ${esc(v.text)}</option>`).join(""))}${submit("Matcha utan ny bokföring")}</form>`
+    : "";
+  const manualMatch = `<details><summary>Matcha med verifikationsnummer</summary><form data-form="bank-match-by-number">${field("Verifikationsnummer (siffror)", "voucherNumber", "number", "", 'required min="1"')}${b.currency !== "SEK" ? field("Växelkurs för matchning", "exchangeRate", "text", bankRate, "required") : ""}${submit("Matcha angiven verifikation")}</form></details>`;
+  const searchForm =
+    b.currency !== "SEK"
+      ? `<form data-form="bank-search">${field("Växelkurs för matchning", "exchangeRate", "text", bankRate, "required")}${submit("Sök träffar i bokföringen")}</form>`
+      : "";
+  return `<section class="card" id="classification"><h2>Klassificera bankhändelse</h2><p class="help">${esc(b.date)} · ${esc(b.description)} · ${money(b.amount).replace(" kr", "")} ${esc(b.currency)}</p>${searchForm}${suggestions}${matchForm}${manualMatch}<form data-form="bank-book"><div class="form-grid">${select("Motkonto", "account", accountOptions(["1930", "1510"]))}${field("Växelkurs · SEK per valutaenhet", "exchangeRate", "text", bankRate, 'required inputmode="decimal"')}${bankCandidates.length ? '<label class="checkbox wide"><input type="checkbox" name="distinct" required>Bankraden avser en separat händelse från träffarna ovan.</label>' : ""}<label class="checkbox wide"><input type="checkbox" name="reviewed" required>Jag har granskat kontering, belopp, växelkurs och moms. Eventuell moms bokförs separat.</label></div><p class="help">Händelsen bokförs mot bankkonto 1930. Kundbetalningar registreras via fakturans knapp Betalning så att kundfordran stäms av.</p>${submit("Bokför bankhändelse")}</form></section>`;
 }
 
 root.addEventListener("input", (event) => {
@@ -551,7 +641,12 @@ function dashboardDetails() {
     ],
     [
       "Bankhändelser att klassificera",
-      state.bank.filter((b) => b.source === "bank" && !b.voucher_id).length,
+      state.bank.filter((b) => b.source === "bank" && !b.voucher_id && !["pending", "duplicate"].includes(b.review_status)).length,
+      "bank",
+    ],
+    [
+      "Möjliga bankdubbletter",
+      state.bank.filter((b) => b.review_status === "pending").length,
       "bank",
     ],
     [
@@ -567,7 +662,7 @@ function dashboardDetails() {
     ["Datum", "Beskrivning", "Källa", "Originalbelopp", "Status"],
     recent.map(
       (b) =>
-        `<tr><td>${esc(b.date)}</td><td>${esc(b.description)}</td><td>${esc({ bank: "Bank", kdp: "Amazon KDP", adtraction: "Adtraction" }[b.source] || b.source)}</td><td>${money(b.original_amount ?? b.amount).replace(" kr", "")} ${esc(b.currency)}</td><td><span class="badge ${b.voucher_id ? "" : "warning"}">${b.voucher_id ? "Bokförd" : b.source === "bank" ? "Att klassificera" : "Manuell granskning"}</span></td></tr>`,
+        `<tr><td>${esc(b.date)}</td><td>${esc(b.description)}</td><td>${esc({ bank: "Bank", kdp: "Amazon KDP", adtraction: "Adtraction" }[b.source] || b.source)}</td><td>${money(b.original_amount ?? b.amount).replace(" kr", "")} ${esc(b.currency)}</td><td><span class="badge ${b.voucher_id ? "" : "warning"}">${b.voucher_id ? "Bokförd" : b.review_status === "pending" ? "Möjlig dubblett" : b.review_status === "duplicate" ? "Bekräftad dubblett" : b.source === "bank" ? "Att klassificera" : "Manuell granskning"}</span></td></tr>`,
     ),
   )}</section>`;
 }

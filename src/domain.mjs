@@ -8,8 +8,10 @@ import {
   amountText,
   convertCurrency,
 } from "./money.mjs";
-import { validDate, normalizeCSV } from "./imports.mjs";
+import { validDate, normalizeCSV, validCurrency } from "./imports.mjs";
 import { hashPassword } from "./security.mjs";
+
+import { validateFiscalYear } from "./fiscal.mjs";
 
 export class DomainError extends Error {
   constructor(message, status = 400) {
@@ -25,6 +27,10 @@ const text = (s, max = 500) => {
     fail("Obligatorisk text saknas eller är för lång.");
   return s.trim();
 };
+function onlyFields(data, ...names) {
+  const unknown = Object.keys(data).find((key) => !names.includes(key));
+  if (unknown) fail(`Fältet ${unknown} stöds inte för denna åtgärd.`);
+}
 const now = () => new Date().toISOString();
 function bankFingerprint(data, source) {
   return createHash("sha256")
@@ -85,8 +91,11 @@ export class Store {
       CREATE TABLE IF NOT EXISTS entries(id INTEGER PRIMARY KEY,voucher_id INTEGER NOT NULL REFERENCES vouchers(id),account TEXT NOT NULL REFERENCES accounts(number),debit INTEGER NOT NULL CHECK(debit>=0),credit INTEGER NOT NULL CHECK(credit>=0),CHECK((debit=0 AND credit>0) OR (credit=0 AND debit>0)));
       CREATE TABLE IF NOT EXISTS imports(id INTEGER PRIMARY KEY,source TEXT NOT NULL,hash TEXT NOT NULL,created_at TEXT NOT NULL,rows INTEGER NOT NULL,UNIQUE(source,hash));
       CREATE TABLE IF NOT EXISTS bank(id INTEGER PRIMARY KEY,date TEXT NOT NULL,description TEXT NOT NULL,amount INTEGER NOT NULL,currency TEXT NOT NULL,reference TEXT NOT NULL,source TEXT NOT NULL,period TEXT NOT NULL DEFAULT '',fingerprint TEXT NOT NULL UNIQUE,import_id INTEGER REFERENCES imports(id),voucher_id INTEGER REFERENCES vouchers(id),invoice_id INTEGER REFERENCES invoices(id),original_amount INTEGER,exchange_rate TEXT);
+      CREATE TABLE IF NOT EXISTS booking_requests(scope TEXT NOT NULL,key TEXT NOT NULL,payload_hash TEXT NOT NULL,result TEXT NOT NULL,PRIMARY KEY(scope,key));
+      CREATE TABLE IF NOT EXISTS bank_reviews(bank_id INTEGER PRIMARY KEY REFERENCES bank(id), status TEXT NOT NULL CHECK(status IN ('pending','distinct','duplicate')));
       CREATE TABLE IF NOT EXISTS periods(through TEXT PRIMARY KEY,actor INTEGER NOT NULL REFERENCES users(id),created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor INTEGER REFERENCES users(id),action TEXT NOT NULL,detail TEXT NOT NULL,created_at TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS bank_voucher ON bank(voucher_id);
       CREATE INDEX IF NOT EXISTS entries_account ON entries(account,voucher_id);
       CREATE INDEX IF NOT EXISTS vouchers_date ON vouchers(date);
       CREATE TRIGGER IF NOT EXISTS vouchers_no_update BEFORE UPDATE ON vouchers BEGIN SELECT RAISE(ABORT,'Verifikationer är oföränderliga'); END;
@@ -105,6 +114,15 @@ export class Store {
     this.tx(() => {
       for (const a of ACCOUNTS)
         this.run("INSERT OR IGNORE INTO accounts VALUES(?,?,?)", ...a);
+      for (const row of this.all(
+        "SELECT b.id,b.voucher_id AS original,v.id AS correction FROM vouchers v JOIN bank b ON b.voucher_id=v.reversal_of",
+      )) {
+        this.run(
+          "UPDATE bank SET voucher_id=NULL,invoice_id=NULL,original_amount=NULL,exchange_rate=NULL WHERE id=?",
+          row.id,
+        );
+        this.audit(null, "bank.unmatch", { ...row, migrated: true });
+      }
     });
   }
   run(sql, ...params) {
@@ -120,6 +138,8 @@ export class Store {
     this.db.close();
   }
   tx(fn) {
+    // HTTP mutations join the transaction that checked the active session.
+    if (this.db.isTransaction) return fn();
     this.db.exec("BEGIN IMMEDIATE");
     try {
       const result = fn();
@@ -129,6 +149,43 @@ export class Store {
       this.db.exec("ROLLBACK");
       throw e;
     }
+  }
+  once(scope, data, fn) {
+    const { idempotencyKey: key, ...payload } = data;
+    if (key === undefined) return fn();
+    if (typeof key !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(key))
+      fail("Ogiltigt id för bokföringsbegäran.");
+    const sorted = (value) => {
+      if (Array.isArray(value)) return value.map(sorted);
+      if (!value || typeof value !== "object") return value;
+      return Object.fromEntries(
+        Object.keys(value)
+          .sort()
+          .map((name) => [name, sorted(value[name])]),
+      );
+    };
+    const hash = createHash("sha256")
+      .update(JSON.stringify(sorted(payload)))
+      .digest("hex");
+    const prior = this.get(
+      "SELECT payload_hash,result FROM booking_requests WHERE scope=? AND key=?",
+      scope,
+      key,
+    );
+    if (prior) {
+      if (prior.payload_hash !== hash)
+        fail("Begärans id används redan med andra uppgifter.", 409);
+      return JSON.parse(prior.result);
+    }
+    const result = fn();
+    this.run(
+      "INSERT INTO booking_requests VALUES(?,?,?,?)",
+      scope,
+      key,
+      hash,
+      JSON.stringify(result),
+    );
+    return result;
   }
   authorize(actor, admin = false) {
     const user = this.get("SELECT id,name,role FROM users WHERE id=?", actor);
@@ -186,6 +243,7 @@ export class Store {
   checkPeriod(date) {
     validDate(date);
     const c = this.get("SELECT * FROM company WHERE id=1");
+    if (c) validateFiscalYear(c.fiscal_start, c.fiscal_end);
     if (!c || date < c.fiscal_start || date > c.fiscal_end)
       fail("Datum ligger utanför räkenskapsåret.");
     if (this.get("SELECT through FROM periods WHERE through>=? LIMIT 1", date))
@@ -199,12 +257,32 @@ export class Store {
         fail("Inställningarna har ändrats. Läs om sidan.", 409);
       const start = validDate(data.fiscalStart),
         end = validDate(data.fiscalEnd);
-      if (start >= end) fail("Räkenskapsårets slut måste vara efter start.");
-      if (
-        (start !== c.fiscal_start || end !== c.fiscal_end) &&
-        this.get("SELECT id FROM vouchers LIMIT 1")
-      )
-        fail("Räkenskapsår med bokföring kan inte ändras.");
+      validateFiscalYear(start, end);
+      if (start !== c.fiscal_start || end !== c.fiscal_end) {
+        let invalidPrevious = false;
+        try {
+          validateFiscalYear(c.fiscal_start, c.fiscal_end);
+        } catch {
+          invalidPrevious = true;
+        }
+        if (
+          (!invalidPrevious && this.get("SELECT id FROM vouchers LIMIT 1")) ||
+          this.get(
+            `SELECT date FROM vouchers WHERE date NOT BETWEEN ? AND ?
+           UNION ALL SELECT date FROM invoices WHERE date NOT BETWEEN ? AND ?
+           UNION ALL SELECT through FROM periods WHERE through NOT BETWEEN ? AND ? LIMIT 1`,
+            start,
+            end,
+            start,
+            end,
+            start,
+            end,
+          )
+        )
+          fail(
+            "Räkenskapsår med bokföring kan inte ändras. En korrigerad period måste rymma alla befintliga poster.",
+          );
+      }
       if (
         !/^\d{6}-?\d{4}$/.test(data.orgNumber) ||
         !/^SE\d{12}$/.test(data.vatNumber)
@@ -221,7 +299,15 @@ export class Store {
         start,
         end,
       );
-      this.audit(actor, "company.update", { version: c.version + 1 });
+      this.audit(actor, "company.update", {
+        version: c.version + 1,
+        ...((start !== c.fiscal_start || end !== c.fiscal_end) && {
+          fiscalYear: {
+            before: [c.fiscal_start, c.fiscal_end],
+            after: [start, end],
+          },
+        }),
+      });
     });
   }
   customer(data, actor) {
@@ -242,6 +328,16 @@ export class Store {
   }
   invoice(data, actor) {
     this.authorize(actor);
+    onlyFields(
+      data,
+      "customerId",
+      "date",
+      "dueDate",
+      "description",
+      "quantity",
+      "unitPrice",
+      "vatRate",
+    );
     this.checkPeriod(data.date);
     validDate(data.dueDate);
     if (
@@ -286,14 +382,16 @@ export class Store {
         "Interna bokföringsreferenser får bara skapas genom respektive rättelse- eller fakturaflöde.",
       );
     return this.tx(() =>
-      this._post(
-        {
-          date: data.date,
-          text: data.text,
-          lines: data.lines,
-          documentId: data.documentId,
-        },
-        actor,
+      this.once("voucher", data, () =>
+        this._post(
+          {
+            date: data.date,
+            text: data.text,
+            lines: data.lines,
+            documentId: data.documentId,
+          },
+          actor,
+        ),
       ),
     );
   }
@@ -405,43 +503,52 @@ export class Store {
   }
   payment(id, data, actor) {
     this.authorize(actor);
+    onlyFields(data, "amount", "date", "idempotencyKey");
     const amount = decimal(data.amount);
-    return this.tx(() => {
-      const i = this.get("SELECT * FROM invoices WHERE id=?", id);
-      if (
-        !i ||
-        !["issued", "partial"].includes(i.status) ||
-        amount <= 0 ||
-        amount > i.total - i.paid
-      )
-        fail(
-          "Betalningen måste avse en obetald faktura och får inte överstiga restbeloppet.",
+    return this.tx(() =>
+      this.once("payment", { ...data, invoiceId: id }, () => {
+        const i = this.get("SELECT * FROM invoices WHERE id=?", id);
+        if (
+          !i ||
+          !["issued", "partial"].includes(i.status) ||
+          amount <= 0 ||
+          amount > i.total - i.paid
+        )
+          fail(
+            "Betalningen måste avse en obetald faktura och får inte överstiga restbeloppet.",
+          );
+        if (data.date < i.date)
+          fail("Betalningen får inte föregå fakturadatum.");
+        const payment = this._post(
+          {
+            date: data.date,
+            text: `Betalning faktura ${i.number}`,
+            invoiceId: id,
+            lines: [
+              { account: "1930", debit: data.amount },
+              { account: "1510", credit: data.amount },
+            ],
+          },
+          actor,
         );
-      if (data.date < i.date) fail("Betalningen får inte föregå fakturadatum.");
-      this._post(
-        {
-          date: data.date,
-          text: `Betalning faktura ${i.number}`,
-          invoiceId: id,
-          lines: [
-            { account: "1930", debit: data.amount },
-            { account: "1510", credit: data.amount },
-          ],
-        },
-        actor,
-      );
-      this.run(
-        "UPDATE invoices SET paid=paid+?,status=?,version=version+1 WHERE id=?",
-        amount,
-        i.paid + amount === i.total ? "paid" : "partial",
-        id,
-      );
-      this.audit(actor, "invoice.payment", { id, amount });
-      return { id };
-    });
+        this.run(
+          "UPDATE invoices SET paid=paid+?,status=?,version=version+1 WHERE id=?",
+          amount,
+          i.paid + amount === i.total ? "paid" : "partial",
+          id,
+        );
+        this.audit(actor, "invoice.payment", {
+          id,
+          amount,
+          paymentId: payment.id,
+        });
+        return { id, paymentId: payment.id };
+      }),
+    );
   }
   credit(id, data, actor) {
     this.authorize(actor);
+    onlyFields(data, "date");
     return this.tx(() => {
       const i = this.get("SELECT * FROM invoices WHERE id=?", id);
       if (
@@ -498,9 +605,17 @@ export class Store {
     this.authorize(actor);
     return this.tx(() => {
       const v = this.get("SELECT * FROM vouchers WHERE id=?", id);
+      const payment =
+        v?.invoice_id &&
+        !v.reversal_of &&
+        this.get(
+          "SELECT credit AS amount FROM entries WHERE voucher_id=? AND account='1510' AND credit>0 AND EXISTS (SELECT 1 FROM entries WHERE voucher_id=? AND account='1930' AND debit>0)",
+          id,
+          id,
+        );
       if (
         !v ||
-        v.invoice_id ||
+        (v.invoice_id && !payment) ||
         this.get("SELECT id FROM vouchers WHERE reversal_of=?", id)
       )
         fail(
@@ -513,6 +628,7 @@ export class Store {
           date: data.date,
           text: `Rättelse V${v.number}: ${reason}`,
           reversalOf: id,
+          invoiceId: payment ? v.invoice_id : undefined,
           documentId: v.document_id,
           lines: this.all("SELECT * FROM entries WHERE voucher_id=?", id).map(
             (l) => ({
@@ -524,6 +640,44 @@ export class Store {
         },
         actor,
       );
+      if (payment) {
+        const invoice = this.get(
+          "SELECT paid,status FROM invoices WHERE id=?",
+          v.invoice_id,
+        );
+        if (
+          !["paid", "partial"].includes(invoice.status) ||
+          invoice.paid < payment.amount
+        )
+          fail(
+            "Betalningen kan inte återföras med fakturans aktuella saldo.",
+            409,
+          );
+        const paid = invoice.paid - payment.amount;
+        this.run(
+          "UPDATE invoices SET paid=?,status=?,version=version+1 WHERE id=?",
+          paid,
+          paid ? "partial" : "issued",
+          v.invoice_id,
+        );
+        this.audit(actor, "invoice.payment.reverse", {
+          id: v.invoice_id,
+          paymentId: id,
+          correction: result.id,
+          amount: payment.amount,
+        });
+      }
+      const linked = this.all("SELECT id FROM bank WHERE voucher_id=?", id);
+      this.run(
+        "UPDATE bank SET voucher_id=NULL,invoice_id=NULL,original_amount=NULL,exchange_rate=NULL WHERE voucher_id=?",
+        id,
+      );
+      for (const row of linked)
+        this.audit(actor, "bank.unmatch", {
+          id: row.id,
+          original: id,
+          correction: result.id,
+        });
       this.audit(actor, "voucher.reverse", {
         original: id,
         correction: result.id,
@@ -546,18 +700,28 @@ export class Store {
     validDate(data.date);
     const description = text(data.description),
       reference = String(data.reference || "").trim();
-    const currency = String(data.currency || "SEK").toUpperCase();
-    if (
-      !/^[A-Z]{3}$/.test(currency) ||
-      !Number.isSafeInteger(data.amount) ||
-      data.amount === 0
-    )
+    const currency = validCurrency(data.currency ?? "SEK");
+    if (!Number.isSafeInteger(data.amount) || data.amount === 0)
       fail("Kontrollera valuta och transaktionsbelopp.");
-    // Source deliberately excluded: the same bank row must not duplicate via manual entry and CSV.
-    const fingerprint = bankFingerprint(
+    let fingerprint = bankFingerprint(
       { ...data, currency, reference, description },
       source,
     );
+    const collision =
+      source === "bank" &&
+      !reference &&
+      this.get("SELECT id FROM bank WHERE fingerprint=?", fingerprint);
+    if (collision) {
+      fingerprint = createHash("sha256")
+        .update(
+          JSON.stringify([
+            fingerprint,
+            importId,
+            this.get("SELECT COALESCE(MAX(id),0) AS max FROM bank").max,
+          ]),
+        )
+        .digest("hex");
+    }
     const result = this.run(
       "INSERT OR IGNORE INTO bank(date,description,amount,currency,reference,source,period,fingerprint,import_id) VALUES(?,?,?,?,?,?,?,?,?)",
       data.date,
@@ -570,18 +734,25 @@ export class Store {
       fingerprint,
       importId,
     );
-    if (result.changes)
+    if (result.changes) {
+      const id = Number(result.lastInsertRowid);
+      if (collision)
+        this.run("INSERT INTO bank_reviews VALUES(?,'pending')", id);
       this.audit(actor, "transaction.register", {
-        id: Number(result.lastInsertRowid),
+        id,
         source,
+        ...(collision && { possibleDuplicateOf: collision.id }),
       });
+    }
     return result.changes > 0;
   }
   bank(data, actor) {
     this.authorize(actor);
-    return this.tx(() => ({
-      inserted: this._bank({ ...data, amount: decimal(data.amount) }, actor),
-    }));
+    return this.tx(() =>
+      this.once("bank", data, () => ({
+        inserted: this._bank({ ...data, amount: decimal(data.amount) }, actor),
+      })),
+    );
   }
   import(data, actor) {
     this.authorize(actor);
@@ -591,7 +762,7 @@ export class Store {
     const seen = new Set();
     for (const row of rows) {
       const key = bankFingerprint(row, data.source);
-      if (seen.has(key))
+      if (seen.has(key) && (data.source !== "bank" || row.reference))
         fail(
           "Importen innehåller flera identiska ekonomiska rader. Inga rader har importerats. Ange unika transaktionsreferenser för att skilja verkliga händelser från dubbletter.",
         );
@@ -628,16 +799,110 @@ export class Store {
       return { id, inserted, duplicates: rows.length - inserted };
     });
   }
+  openBank(id) {
+    const row = this.get(
+      "SELECT b.*,r.status AS review_status FROM bank b LEFT JOIN bank_reviews r ON r.bank_id=b.id WHERE b.id=?",
+      id,
+    );
+    if (!row || row.voucher_id)
+      fail("Transaktionen saknas eller är redan bokförd eller matchad.", 409);
+    if (row.source !== "bank")
+      fail(
+        "KDP/Adtraction kräver manuell avtals- och momsgranskning före bokföring.",
+      );
+    if (["pending", "duplicate"].includes(row.review_status))
+      fail(
+        "Granska den möjliga dubbletten innan du bokför eller matchar bankraden.",
+        409,
+      );
+    validCurrency(row.currency);
+    return row;
+  }
+  reviewBank(id, decision, actor) {
+    this.authorize(actor);
+    return this.tx(() => {
+      if (!["distinct", "duplicate"].includes(decision))
+        fail("Välj om bankraden är en separat händelse eller en dubblett.");
+      const review = this.run(
+        "UPDATE bank_reviews SET status=? WHERE bank_id=? AND status='pending'",
+        decision,
+        id,
+      );
+      if (!review.changes)
+        fail("Bankraden väntar inte på dubblettgranskning.", 409);
+      this.audit(actor, "bank.review", { id, decision });
+    });
+  }
+  bankMatches(row, amount = row.amount, target = {}) {
+    const filter = target.id
+      ? "v.id=?"
+      : target.number
+        ? "v.number=?"
+        : "ABS(julianday(v.date)-julianday(?))<=3";
+    return this.all(
+      `SELECT v.id,v.number,v.date,v.text,v.invoice_id,
+        (SELECT b.id FROM bank b WHERE b.voucher_id=v.id LIMIT 1) AS bank_id
+       FROM vouchers v JOIN entries e ON e.voucher_id=v.id AND e.account='1930'
+       WHERE ${filter} AND e.debit-e.credit=?
+         AND v.reversal_of IS NULL AND NOT EXISTS (SELECT 1 FROM vouchers r WHERE r.reversal_of=v.id)
+         AND (SELECT COUNT(*) FROM entries x WHERE x.voucher_id=v.id AND x.account='1930')=1
+       ORDER BY v.date,v.number`,
+      target.id ?? target.number ?? row.date,
+      amount,
+    );
+  }
+  suggestBank(id, actor, exchangeRate) {
+    this.authorize(actor);
+    const row = this.openBank(id);
+    if (row.currency === "SEK") return this.bankMatches(row);
+    if (!exchangeRate) return [];
+    return this.bankMatches(
+      row,
+      convertCurrency(amountText(row.amount), exchangeRate),
+    );
+  }
+  matchBank(id, data, actor) {
+    this.authorize(actor);
+    return this.tx(() => {
+      const row = this.openBank(id);
+      const converted =
+        row.currency === "SEK"
+          ? row.amount
+          : convertCurrency(amountText(row.amount), data.exchangeRate);
+      const value = Number(data.voucherId ?? data.voucherNumber);
+      if (
+        !Number.isSafeInteger(value) ||
+        value < 1 ||
+        (data.voucherId != null && data.voucherNumber != null)
+      )
+        fail("Välj en verifikation eller ange dess nummer.");
+      const [match] = this.bankMatches(
+        row,
+        converted,
+        data.voucherId != null ? { id: value } : { number: value },
+      );
+      if (!match || match.bank_id)
+        fail(
+          "Verifikationen kan inte matchas. Kontrollera nummer, belopp och befintliga matchningar.",
+          409,
+        );
+      this.run(
+        "UPDATE bank SET voucher_id=?,invoice_id=?,original_amount=?,exchange_rate=? WHERE id=?",
+        match.id,
+        match.invoice_id,
+        row.amount,
+        row.currency === "SEK" ? "1.000000" : data.exchangeRate,
+        id,
+      );
+      this.audit(actor, "bank.match", { id, voucher: match.id });
+      return { id, voucherId: match.id };
+    });
+  }
   bookBank(id, data, actor) {
     this.authorize(actor);
     return this.tx(() => {
-      const b = this.get("SELECT * FROM bank WHERE id=?", id);
-      if (!b || b.voucher_id)
-        fail("Transaktionen saknas eller är redan bokförd.", 409);
-      if (b.source !== "bank")
-        fail(
-          "KDP/Adtraction kräver manuell avtals- och momsgranskning före bokföring.",
-        );
+      const b = this.openBank(id);
+      this.checkPeriod(b.date);
       if (String(data.account) === "1510")
         fail(
           "Matcha kundbetalningar genom fakturans betalningsflöde. Direkt bankklassificering mot 1510 är spärrad för att undvika dubbla betalningar.",
@@ -647,6 +912,15 @@ export class Store {
           ? b.amount
           : convertCurrency(amountText(b.amount), data.exchangeRate);
       const rate = b.currency === "SEK" ? "1.000000" : data.exchangeRate;
+      const candidates = this.bankMatches(b, converted);
+      if (
+        candidates.length &&
+        data.distinctFrom !== candidates.map((v) => v.id).join(",")
+      )
+        fail(
+          "En möjlig träff finns redan i bokföringen. Matcha bankraden eller bekräfta att den avser en separat händelse.",
+          409,
+        );
       if (
         !data.reviewed ||
         !this.get(
@@ -689,6 +963,7 @@ export class Store {
         original: b.amount,
         exchangeRate: rate,
         sek: converted,
+        ...(candidates.length && { distinctFrom: candidates.map((v) => v.id) }),
       });
       return p;
     });
@@ -796,7 +1071,10 @@ export class Store {
           ),
         }),
       ),
-      bank: this.all("SELECT * FROM bank ORDER BY date DESC,id DESC"),
+      bank: this.all(
+        `SELECT b.*,r.status AS review_status FROM bank b
+         LEFT JOIN bank_reviews r ON r.bank_id=b.id ORDER BY b.date DESC,b.id DESC`,
+      ),
       imports: this.all("SELECT * FROM imports ORDER BY id DESC"),
       documents: this.all(
         "SELECT id,name,type,hash,created_at,previous_id FROM documents ORDER BY id DESC",

@@ -1,0 +1,7 @@
+SYNTHETIC RECEIPT KVITTO-001
+Fiktiva Programvarubutiken AB
+Date 2026-10-06. Paid by bank, reference KVITTO-001.
+Software cost SEK 4000.00
+VAT 25 percent SEK 1000.00
+Total SEK 5000.00
+Testkompassen AB

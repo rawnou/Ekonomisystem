@@ -1,0 +1,32 @@
+Testkompassen AB
+FAKTURA 1
+Fakturadatum: 2026-10-01 Förfallodatum: 2026-10-15
+Leverans-/tjänstedatum: 2026-10-01 (samma som fakturadatum)
+Säljare: Testkompassen AB
+Org.nr: 559900-0006 Momsreg.nr: SE559900000601
+Bokföringsvägen 42, 111 11 Exempelstad
+Godkänd för F-skatt
+
+
+Kund: Fiktiv Skärgårdskund AB
+Org.nr: 559999-9903
+Påhittsvägen 7, 111 11 Exempelstad
+
+
+Planering och analys A
+Antal: 1 Enhetspris: 20000.00 SEK
+Beskattningsunderlag: 20000.00 SEK
+Moms 25 %: 5000.00 SEK
+TOTALT: 25000.00 SEK
+
+
+Betalningsuppgifter: FIKTIV BANKREFERENS
+Ange fakturanummer 1 vid betalning.
+
+
+Lokalt testsystem - syntetiska uppgifter. Granska före användning.
+
+
+
+
+Faktura 1 - sida 1 av 1

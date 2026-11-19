@@ -1,0 +1,5 @@
+FIKTIV LEVERANTORSFAKTURA LF-712
+Fiktionstjanst i Norden AB | Testkompassen AB
+Fakturadatum 2026-10-07 | Forfallodatum 2026-11-06
+Programvara 1000.00 SEK | Moms 25 % 250.00 SEK
+Att betala 1250.00 SEK | Referens BANK-LF712

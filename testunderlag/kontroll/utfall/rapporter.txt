@@ -1,0 +1,62 @@
+BALANS · RAPPORTER
+Rapporter
+
+Samla, hantera och följ upp företagets rapporter.
+
+SEK · 2026
+Resultaträkning
+Konto	Benämning	Saldo
+3041	Försäljning tjänster Sverige	−20 000,00 kr
+3044	Försäljning momsfri – kräver bedömning	0,00 kr
+3740	Öresutjämning	0,00 kr
+3960	Valutakursvinster	0,00 kr
+4535	Inköp tjänster från EU – manuell moms	0,00 kr
+5410	Förbrukningsinventarier	0,00 kr
+5420	Programvaror	4 000,00 kr
+6110	Kontorsmateriel	0,00 kr
+6570	Bankkostnader	0,00 kr
+7960	Valutakursförluster	0,00 kr
+Årets resultat
+16 000,00 kr
+Balansöversikt
+Tillgångar
+71 000,00 kr
+Skulder
+5 000,00 kr
+Eget kapital inkl. resultat
+66 000,00 kr
+Bankkonto, 1930
+55 000,00 kr
+
+Årets resultat redovisas separat ovan. Kontrollera rapporterna med redovisningskunnig före deklaration.
+
+Saldobalans
+Konto	Benämning	Saldo
+1510	Kundfordringar	15 000,00 kr
+1930	Företagskonto	55 000,00 kr
+2081	Aktiekapital	−50 000,00 kr
+2091	Balanserat resultat	0,00 kr
+2440	Leverantörsskulder	0,00 kr
+2611	Utgående moms 25 %	−5 000,00 kr
+2621	Utgående moms 12 %	0,00 kr
+2631	Utgående moms 6 %	0,00 kr
+2641	Ingående moms	1 000,00 kr
+2650	Redovisningskonto moms	0,00 kr
+3041	Försäljning tjänster Sverige	−20 000,00 kr
+3044	Försäljning momsfri – kräver bedömning	0,00 kr
+3740	Öresutjämning	0,00 kr
+3960	Valutakursvinster	0,00 kr
+4535	Inköp tjänster från EU – manuell moms	0,00 kr
+5410	Förbrukningsinventarier	0,00 kr
+5420	Programvaror	4 000,00 kr
+6110	Kontorsmateriel	0,00 kr
+6570	Bankkostnader	0,00 kr
+7960	Valutakursförluster	0,00 kr
+Exportera bokföring
+
+Exporterna innehåller företagets bokföringsdata. Förvara dem på en säker lokal plats.
+
+Hämta SIE
+Hämta JSON
+
+Balans · Lokalt ekonomisystem · Endast syntetiska data.

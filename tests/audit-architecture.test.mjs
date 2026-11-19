@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { Store } from "../src/domain.mjs";
 import { invoicePDF } from "../src/pdf.mjs";
 import { makeBackup, restoreBackup } from "../src/backup.mjs";
@@ -46,27 +46,33 @@ for (const field of ["customer", "description"]) {
   });
 }
 
-test("A3 observed: backup verification accepts a broken voucher counter and restored posting fails", async (t) => {
+test("A3: backup avvisar eftersatt nummerserie och en giltig kopia kan bokföras", async () => {
   const dir = mkdtempSync(join(tmpdir(), "ekonomi-audit-architecture-"));
   const s = new Store(join(dir, "source.sqlite"));
   let restored;
   try {
     s.seed([{ email: "audit@example.test", name: "Audit", password: "synthetic-audit-password" }]);
     s.post({ date: "2026-10-01", text: "Testkapital", lines }, 1);
-    // Model a semantically damaged database; this requires direct DB access.
-    // No HTTP exploit or ordinary user path to this damage is claimed.
-    s.run("UPDATE counters SET value=0 WHERE name='voucher'");
+    const first = invoice(s);
+    s.issue(first, 1, 1);
     const backup = join(dir, "backup.sqlite"), target = join(dir, "restored.sqlite");
-    const manifest = await makeBackup(s, backup);
-    assert.equal(manifest.vouchers, 1);
-    assert.equal(restoreBackup(backup, target).vouchers, 1);
+    s.run("UPDATE counters SET value=0 WHERE name='voucher'");
+    await assert.rejects(makeBackup(s, backup), /nummerserie för verifikationer/);
+    assert.equal(existsSync(backup), false);
+    s.run("UPDATE counters SET value=2 WHERE name='voucher'");
+    s.run("DELETE FROM counters WHERE name='invoice'");
+    await assert.rejects(makeBackup(s, backup), /nummerserie för fakturor/);
+    s.run("INSERT INTO counters VALUES('invoice',1)");
+    await makeBackup(s, backup);
+    assert.equal(restoreBackup(backup, target).vouchers, 2);
     restored = new Store(target);
-    assert.throws(() => restored.post({ date: "2026-10-02", text: "Nästa testpost", lines }, 1), /UNIQUE constraint failed: vouchers.number/);
-    assert.equal(restored.state().vouchers.length, 1);
+    assert.equal(restored.post({ date: "2026-10-02", text: "Nästa testpost", lines }, 1).number, 3);
+    assert.equal(restored.issue(invoice(restored), 1, 1).number, 2);
   } finally {
     restored?.close();
     s.close();
-    assert.ok(resolve(dir).startsWith(resolve(tmpdir()) + "\\ekonomi-audit-architecture-"));
+    assert.equal(dirname(resolve(dir)), resolve(tmpdir()));
+    assert.ok(basename(dir).startsWith("ekonomi-audit-architecture-"));
     rmSync(dir, { recursive: true, force: true });
   }
 });

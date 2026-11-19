@@ -31,6 +31,23 @@ export function verifyDatabase(path) {
         .all().length
     )
       throw new Error("Obalanserade verifikationer i backup.");
+    const brokenSeries = db
+      .prepare(
+        `WITH expected(name, highest) AS (
+         SELECT 'voucher', COALESCE(MAX(number),0) FROM vouchers
+         UNION ALL SELECT 'invoice', COALESCE(MAX(number),0) FROM invoices
+       )
+       SELECT e.name AS name FROM expected e LEFT JOIN counters c ON c.name=e.name
+       WHERE (c.name IS NULL AND e.highest>0)
+          OR (c.name IS NOT NULL AND (typeof(c.value)<>'integer' OR c.value<e.highest))
+       LIMIT 1`,
+      )
+      .get();
+    if (brokenSeries) {
+      const series =
+        brokenSeries.name === "voucher" ? "verifikationer" : "fakturor";
+      throw new Error(`Ogiltig nummerserie för ${series} i backup.`);
+    }
     for (const d of db.prepare("SELECT hash,content FROM documents").all())
       if (createHash("sha256").update(d.content).digest("hex") !== d.hash)
         throw new Error("Skadat underlag i backup.");

@@ -1,4 +1,11 @@
 import { decimal } from "./money.mjs";
+const currencies = new Set(Intl.supportedValuesOf("currency"));
+export function validCurrency(value) {
+  const code = typeof value === "string" ? value.toUpperCase() : "";
+  if (!currencies.has(code) || code === "XXX")
+    throw new Error("Ogiltig eller saknad valutakod.");
+  return code;
+}
 export function parseCSV(csv) {
   if (typeof csv !== "string" || !csv.trim() || csv.length > 2_000_000)
     throw new Error("CSV-filen är tom eller för stor (max 2 MB).");
@@ -102,8 +109,9 @@ export function normalizeCSV(csv, mapping = {}) {
       throw new Error(`Saknar CSV-kolumn för ${f}. Ange fältmappning.`);
   return rows.map((row, i) => {
     try {
-      const currency = (row[fields.currency] || "SEK").toUpperCase();
-      if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Ogiltig valutakod.");
+      const currency = fields.currency
+        ? validCurrency(row[fields.currency])
+        : "SEK";
       const description = row[fields.description];
       if (!description || description.length > 500)
         throw new Error("Beskrivning saknas eller är för lång.");

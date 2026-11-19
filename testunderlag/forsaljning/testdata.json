@@ -1,0 +1,45 @@
+{
+  "customer": {
+    "name": "Fiktiv Skärgårdskund AB",
+    "orgNumber": "559999-9903",
+    "email": "faktura@skargardskund.example.test",
+    "address": "Påhittsvägen 7, 111 11 Exempelstad"
+  },
+  "invoiceA": {
+    "description": "Planering och analys A",
+    "date": "2026-10-01",
+    "dueDate": "2026-10-15",
+    "quantity": "1",
+    "unitPrice": "20000",
+    "vatRate": 25
+  },
+  "invoiceB": {
+    "description": "Halvöreskontroll B",
+    "date": "2026-10-02",
+    "dueDate": "2026-10-16",
+    "quantity": "0,5",
+    "unitPrice": "1,23",
+    "vatRate": 25
+  },
+  "invoiceC": {
+    "description": "Kreditering C",
+    "date": "2026-10-03",
+    "dueDate": "2026-10-17",
+    "quantity": "1",
+    "unitPrice": "8000",
+    "vatRate": 25
+  },
+  "invoiceD": {
+    "description": "Dubblettbetalning D",
+    "date": "2026-10-04",
+    "dueDate": "2026-10-18",
+    "quantity": "1",
+    "unitPrice": "400",
+    "vatRate": 25
+  },
+  "paymentSlip": [
+    { "bankReference": "FIKT-A-DEL-01", "date": "2026-10-16", "amount": "10000" },
+    { "bankReference": "FIKT-A-SLUT-02", "date": "2026-10-19", "amount": "15000" },
+    { "bankReference": "FIKT-D-DEL-01", "date": "2026-10-20", "amount": "100" }
+  ]
+}

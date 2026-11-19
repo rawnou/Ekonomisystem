@@ -1,0 +1,3 @@
+datum;beskrivning;belopp;valuta;referens
+2026-10-15;Giltig rad;-4,00;EUR;BANK-REF-KOLL
+2026-10-15;Ogiltigt kodfält;-10,00;EU;BANK-EU

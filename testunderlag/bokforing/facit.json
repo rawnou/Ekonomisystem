@@ -1,0 +1,93 @@
+{
+  "company": {
+    "name": "Testkompassen AB",
+    "orgNumber": "559900-0006",
+    "vatNumber": "SE559900000601",
+    "fTax": true,
+    "address": "Fiktiv testadress 3, 000 00 Teststad",
+    "bank": "Fiktivt bokföringskonto 1930",
+    "fiscalStart": "2026-01-01",
+    "fiscalEnd": "2026-12-31"
+  },
+  "customer": {
+    "name": "Testvårens Kund AB",
+    "orgNumber": "559900-0097",
+    "email": "kund-bokforing@example.test",
+    "address": "Fiktiv testadress 24, 000 00 Teststad"
+  },
+  "invoice": {
+    "date": "2026-04-21",
+    "dueDate": "2026-05-21",
+    "description": "Syntetisk konsulttjänst april",
+    "quantity": "1",
+    "unitPrice": "8000",
+    "vatRate": 25
+  },
+  "payment": {
+    "date": "2026-04-22",
+    "amount": "4000"
+  },
+  "opening": {
+    "date": "2026-01-01",
+    "text": "Testkapital",
+    "lines": [
+      { "account": "1930", "debit": "30000" },
+      { "account": "2081", "credit": "30000" }
+    ]
+  },
+  "incorrect": {
+    "date": "2026-04-20",
+    "text": "Felklassat testutlägg",
+    "lines": [
+      { "account": "6110", "debit": "100" },
+      { "account": "1930", "credit": "100" }
+    ]
+  },
+  "imbalanced": {
+    "date": "2026-04-20",
+    "text": "Avsiktligt obalanserat testutlägg",
+    "lines": [
+      { "account": "6110", "debit": "100" },
+      { "account": "1930", "credit": "99.99" }
+    ]
+  },
+  "correction": {
+    "date": "2026-05-01",
+    "reason": "Felklassat utlägg"
+  },
+  "expense": {
+    "date": "2026-05-02",
+    "text": "Fiktivt programvaruköp",
+    "lines": [
+      { "account": "5420", "debit": "2000" },
+      { "account": "2641", "debit": "500" },
+      { "account": "1930", "credit": "2500" }
+    ]
+  },
+  "expected": {
+    "vouchers": [
+      [1, "2026-01-01", [["1930", 3000000], ["2081", -3000000]]],
+      [2, "2026-04-20", [["6110", 10000], ["1930", -10000]]],
+      [3, "2026-04-21", [["1510", 1000000], ["3041", -800000], ["2611", -200000]]],
+      [4, "2026-04-22", [["1930", 400000], ["1510", -400000]]],
+      [5, "2026-05-01", [["6110", -10000], ["1930", 10000]]],
+      [6, "2026-05-02", [["5420", 200000], ["2641", 50000], ["1930", -250000]]]
+    ],
+    "net": { "1510": 600000, "1930": 3150000, "2081": -3000000, "2611": -200000, "2641": 50000, "3041": -800000, "5420": 200000 },
+    "reports": {
+      "cash": 3150000,
+      "receivables": 600000,
+      "income": 800000,
+      "expenses": 200000,
+      "result": 600000,
+      "balance": { "assets": 3800000, "liabilities": 200000, "equity": 3600000 },
+      "monthly": [
+        { "month": "2026-01", "income": 0, "expenses": 0 },
+        { "month": "2026-04", "income": 800000, "expenses": 10000 },
+        { "month": "2026-05", "income": 0, "expenses": 190000 }
+      ]
+    },
+    "vatDue": 150000,
+    "grossDebit": 4670000
+  }
+}

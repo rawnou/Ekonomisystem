@@ -200,11 +200,11 @@ test("Q5: långa tillåtna uppgifter får flera giltigt refererade sidor och rym
   }
 });
 
-test("Q1: tvetydiga bank- och royaltyrader avvisas före alla databasändringar", (t) => {
+test("Q1: tvetydiga royaltyrader avvisas och bankrader bevaras för granskning", (t) => {
   const store = fixture(t);
   const row = "2026-10-01;Marketplace;100;SEK;2026-08";
   const csv = `date;description;amount;currency;period\n${row}\n${row}`;
-  for (const source of ["bank", "kdp", "adtraction"]) {
+  for (const source of ["kdp", "adtraction"]) {
     assert.throws(
       () => store.import({ source, csv }, 1),
       /Inga rader har importerats.*unika transaktionsreferenser/,
@@ -212,6 +212,8 @@ test("Q1: tvetydiga bank- och royaltyrader avvisas före alla databasändringar"
     assert.equal(store.state().imports.length, 0);
     assert.equal(store.state().bank.length, 0);
   }
+  assert.equal(store.import({ source: "bank", csv }, 1).inserted, 2);
+  assert.equal(store.state().bank.filter(b => b.review_status === "pending").length, 1);
 });
 
 test("Q1: royaltyreferens, rapportperiod och källa bevarar separata händelser", (t) => {

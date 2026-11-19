@@ -53,13 +53,15 @@ export function createApp(store, { port = 3210 } = {}) {
       const cookie = /(?:^|;\s*)session=([a-f0-9]{64})(?:;|$)/.exec(
         req.headers.cookie || "",
       )?.[1];
-      const session = cookie
-        ? store.get(
-            "SELECT s.*,u.name,u.role,u.email FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.expires_at>?",
-            digest(cookie),
-            Date.now(),
-          )
-        : null;
+      const readSession = () =>
+        cookie
+          ? store.get(
+              "SELECT s.*,u.name,u.role,u.email FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.expires_at>?",
+              digest(cookie),
+              Date.now(),
+            )
+          : null;
+      const session = readSession();
       if (req.method === "GET" && path === "/api/session")
         return send(
           200,
@@ -148,22 +150,90 @@ export function createApp(store, { port = 3210 } = {}) {
           csrf,
         });
       }
+      if (req.method !== "GET") {
+        const result = store.tx(() => {
+          const active = readSession();
+          if (!active)
+            throw new DomainError("Logga in för att fortsätta.", 401);
+          if (req.headers["x-csrf-token"] !== active.csrf)
+            throw new DomainError("Ogiltigt CSRF-skydd. Läs om sidan.", 403);
+          const actor = active.user_id;
+          if (req.method === "POST" && path === "/api/logout") {
+            store.run("DELETE FROM sessions WHERE id=?", active.id);
+            store.audit(actor, "auth.logout", {});
+            return;
+          }
+          const key = req.headers["idempotency-key"];
+          if (
+            key !== undefined &&
+            (path === "/api/vouchers" ||
+              path === "/api/bank" ||
+              /^\/api\/invoices\/\d+\/payment$/.test(path))
+          ) {
+            if (
+              data.idempotencyKey !== undefined &&
+              data.idempotencyKey !== key
+            )
+              throw new DomainError(
+                "Begäran innehåller två olika bokförings-id.",
+              );
+            data.idempotencyKey = key;
+          }
+          if (req.method === "PUT" && path === "/api/company")
+            return store.company(data, actor);
+          if (req.method === "POST") {
+            const routes = new Map([
+              ["/api/customers", () => store.customer(data, actor)],
+              ["/api/invoices", () => store.invoice(data, actor)],
+              ["/api/vouchers", () => store.post(data, actor)],
+              ["/api/bank", () => store.bank(data, actor)],
+              ["/api/imports", () => store.import(data, actor)],
+              ["/api/documents", () => store.document(data, actor)],
+              ["/api/periods/lock", () => store.lock(data.through, actor)],
+            ]);
+            if (routes.has(path)) return routes.get(path)();
+            let match = /^\/api\/invoices\/(\d+)\/(issue|payment|credit)$/.exec(
+              path,
+            );
+            if (match) {
+              const id = Number(match[1]);
+              return match[2] === "issue"
+                ? store.issue(id, data.version, actor)
+                : store[match[2]](id, data, actor);
+            }
+            match = /^\/api\/vouchers\/(\d+)\/reverse$/.exec(path);
+            if (match) return store.reverse(Number(match[1]), data, actor);
+            match = /^\/api\/bank\/(\d+)\/(book|match|review)$/.exec(path);
+            if (match) {
+              const id = Number(match[1]);
+              if (match[2] === "book") return store.bookBank(id, data, actor);
+              if (match[2] === "match") return store.matchBank(id, data, actor);
+              return store.reviewBank(id, data.decision, actor);
+            }
+          }
+          throw new DomainError("API-resursen finns inte.", 404);
+        });
+        if (path === "/api/logout")
+          res.setHeader(
+            "Set-Cookie",
+            "session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
+          );
+        return send(200, result);
+      }
       if (!session) throw new DomainError("Logga in för att fortsätta.", 401);
       const actor = session.user_id;
-      if (req.method !== "GET" && req.headers["x-csrf-token"] !== session.csrf)
-        throw new DomainError("Ogiltigt CSRF-skydd. Läs om sidan.", 403);
-      if (req.method === "POST" && path === "/api/logout") {
-        store.run("DELETE FROM sessions WHERE id=?", session.id);
-        store.audit(actor, "auth.logout", {});
-        res.setHeader(
-          "Set-Cookie",
-          "session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
-        );
-        return send(200);
-      }
       if (req.method === "GET") {
         if (path === "/api/state") return send(200, store.state());
-        let match;
+        let match = /^\/api\/bank\/(\d+)\/matches$/.exec(path);
+        if (match)
+          return send(
+            200,
+            store.suggestBank(
+              Number(match[1]),
+              actor,
+              url.searchParams.get("exchangeRate"),
+            ),
+          );
         if ((match = /^\/api\/invoices\/(\d+)\/pdf$/.exec(path))) {
           res.setHeader(
             "Content-Disposition",
@@ -195,55 +265,32 @@ export function createApp(store, { port = 3210 } = {}) {
           );
           return send(200, Buffer.from(doc.content), doc.type);
         }
-        if (path === "/api/export/sie") {
-          store.authorize(actor, true);
-          const bytes = exportSIE(store);
-          store.audit(actor, "export.sie", {});
-          res.setHeader(
-            "Content-Disposition",
-            'attachment; filename="bokforing.se"',
-          );
-          return send(200, bytes, "application/octet-stream");
-        }
-        if (path === "/api/export/json") {
-          const exported = store.exportData(actor);
-          store.audit(actor, "export.json", {});
+        if (path === "/api/export/sie" || path === "/api/export/json") {
+          const sie = path === "/api/export/sie";
+          const exported = store.tx(() => {
+            const active = readSession();
+            if (!active)
+              throw new DomainError("Logga in för att fortsätta.", 401);
+            store.authorize(active.user_id, true);
+            const value = sie
+              ? exportSIE(store)
+              : store.exportData(active.user_id);
+            store.audit(active.user_id, sie ? "export.sie" : "export.json", {});
+            return value;
+          });
+          if (sie) {
+            res.setHeader(
+              "Content-Disposition",
+              'attachment; filename="bokforing.se"',
+            );
+            return send(200, exported, "application/octet-stream");
+          }
           res.setHeader(
             "Content-Disposition",
             'attachment; filename="ekonomisystem-export.json"',
           );
           return send(200, exported);
         }
-      }
-      if (req.method === "PUT" && path === "/api/company")
-        return send(200, store.company(data, actor));
-      if (req.method === "POST") {
-        const routes = {
-          "/api/customers": () => store.customer(data, actor),
-          "/api/invoices": () => store.invoice(data, actor),
-          "/api/vouchers": () => store.post(data, actor),
-          "/api/bank": () => store.bank(data, actor),
-          "/api/imports": () => store.import(data, actor),
-          "/api/documents": () => store.document(data, actor),
-          "/api/periods/lock": () => store.lock(data.through, actor),
-        };
-        if (routes[path]) return send(200, routes[path]());
-        let m;
-        if (
-          (m = /^\/api\/invoices\/(\d+)\/(issue|payment|credit)$/.exec(path))
-        ) {
-          const id = Number(m[1]);
-          return send(
-            200,
-            m[2] === "issue"
-              ? store.issue(id, data.version, actor)
-              : store[m[2]](id, data, actor),
-          );
-        }
-        if ((m = /^\/api\/vouchers\/(\d+)\/reverse$/.exec(path)))
-          return send(200, store.reverse(Number(m[1]), data, actor));
-        if ((m = /^\/api\/bank\/(\d+)\/book$/.exec(path)))
-          return send(200, store.bookBank(Number(m[1]), data, actor));
       }
       throw new DomainError("API-resursen finns inte.", 404);
     } catch (e) {

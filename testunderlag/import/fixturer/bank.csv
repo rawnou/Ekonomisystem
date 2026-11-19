@@ -1,0 +1,7 @@
+datum;beskrivning;belopp;valuta;referens
+2026-10-06;Kvitto K-701;-5000,00;SEK;BANK-K701
+2026-10-09;Leverantörsfaktura LF-712;-1250,00;SEK;BANK-LF712
+2026-10-10;Fiktiv bankavgift;-49,00;SEK;BANK-AVG01
+2026-10-11;Fiktivt köp i EUR;-12,34;EUR;BANK-EUR01
+2026-10-12;Fiktiv kundinbetalning;500,00;SEK;BANK-KUND01
+2026-10-13;Fiktiv KDP-utbetalning;100,00;SEK;BANK-KDP01

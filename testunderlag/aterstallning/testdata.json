@@ -1,0 +1,44 @@
+{
+  "company": {
+    "name": "Testkompassen AB",
+    "orgNumber": "559900-0006",
+    "vatNumber": "SE559900000601",
+    "fTax": true,
+    "address": "Fiktivgatan 1, 100 00 Teststad",
+    "bank": "Fiktivbank A",
+    "fiscalStart": "2026-01-01",
+    "fiscalEnd": "2026-12-31"
+  },
+  "users": [
+    {"email": "admin.aterstallning@example.test", "name": "Ada Testadmin", "role": "admin"},
+    {"email": "bokforare.aterstallning@example.test", "name": "Bo Testbokförare", "role": "accountant"},
+    {"email": "lasare.aterstallning@example.test", "name": "Liv Testläsare", "role": "viewer"}
+  ],
+  "customer": {
+    "name": "Kompassen Testkund AB",
+    "orgNumber": "559999-9998",
+    "email": "kund.aterstallning@example.test",
+    "address": "Provgatan 4, 100 00 Teststad"
+  },
+  "invoice": {
+    "date": "2026-11-03",
+    "dueDate": "2026-11-30",
+    "description": "Fiktiv tjänst",
+    "quantity": "1",
+    "unitPrice": "800.00",
+    "vatRate": 25
+  },
+  "receipt": {
+    "name": "Kvitto R-001 (fiktivt)",
+    "text": "Fiktivt kvitto R-001 - Provleverantoren AB - 250.00 SEK varav moms 50.00 SEK"
+  },
+  "voucher": {
+    "date": "2026-11-04",
+    "text": "Fiktiv direktbetald kostnad R-001",
+    "lines": [
+      {"account": "5420", "debit": "200.00"},
+      {"account": "2641", "debit": "50.00"},
+      {"account": "1930", "credit": "250.00"}
+    ]
+  }
+}

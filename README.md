@@ -32,7 +32,7 @@ Data lagras i `data/ekonomi.sqlite`. Starta om processen efter kodändringar. `D
 5. Kontrollera rapporter, grundbok och behandlingshistorik. En manuell verifikation måste balansera; rättelser skapas som nya motbokningar.
 6. Importera en av filerna i `examples/` under **Bank & import**. Anpassa fältmappning vid andra rubriker. Importerade KDP-/Adtraction-rader bokförs inte automatiskt.
 
-Kundbetalningar registreras i fakturaflödet. Bankklassificering mot 1510 är spärrad tills ett gemensamt avstämnings-/matchningsflöde finns; bokför inte samma betalning igen som en fristående verifikation.
+Registrera kundbetalningen på fakturan. Öppna sedan bankraden under **Bank & import**, granska träffarna och välj **Matcha utan ny bokföring**. Direktklassificering mot 1510 är spärrad. För att återföra en felregistrerad betalning väljer du **Återför betalning** på betalningsverifikationen i **Bokföring**.
 
 ## Funktioner och gränser
 
@@ -40,14 +40,20 @@ Kundbetalningar registreras i fakturaflödet. Bankklassificering mot 1510 är sp
 - Företagsinställningar med versionskontroll, kunder och enradiga svenska tjänstefakturor med 25 % moms. Full kredit av helt obetald faktura. Delkredit, kredit av betald faktura, olika leveransdatum och flera fakturarader återstår.
 - Begränsad BAS-inspirerad kontoplan, dubbel bokföring, grundbok, verifikationsrader, saldobalans, resultat och balans. Periodlåsning och separata rättelser. Full huvudbok med kontofilter samt flera räkenskapsår/årsavslut återstår.
 - Bankregistrering och konfigurerbar CSV-import för bank, KDP och Adtraction. Det är en normaliserad CSV-import, inte verifierade adaptrar för alla leverantörers originalrapporter. Belopp och valuta bevaras; rapportperiod kan mappas. Plattformarnas motpart, skatt och moms kräver manuell bedömning.
-- Dubblettkontroll per fil och transaktionsfingeravtryck. Flera identiska ekonomiska rader i samma fil avvisas atomärt med begäran om unika referenser. En legitim ny händelse i en annan fil som har exakt samma identitet går inte att skilja från en dubblett; använd stabila unika källreferenser och granska importerade/dubbla radantal.
-- Manuell bankklassificering med explicit granskning och växelkurs till SEK. Ingen betalningsöverföring. Automatisk fakturamatchning, matchning av plattformsutbetalningar och full bankavstämning återstår.
+- Dubblettkontroll per fil och transaktionsfingeravtryck. Likadana bankrader utan källreferenser sparas för granskning. Markera varje möjlig dubblett som en separat händelse eller en dubblett. Mappa referensfältet till en stabil transaktionsreferens om banken tillhandahåller en sådan. En uttrycklig valutakolumn måste ha en känd valutakod på varje rad.
+- Manuell bankklassificering och matchning av redan bokförda poster, med uttrycklig granskning och växelkurs till SEK. Förslag baseras på belopp och datum inom tre dagar. Automatisk fakturamatchning, matchning av plattformsutbetalningar och full bankavstämning återstår.
 - PDF/PNG/JPEG-underlag upp till 5 MB, innehållskontroll, SHA-256, dokumentversioner och nedladdning. Underlag kopplas vid skapande av en manuell verifikation. Fulltext/OCR, virusgranskning och efterkoppling till redan bokförd post återstår.
 - Dashboard med bokförda värden, åtgärder och separata importerade plattformsbelopp per valuta. SIE 4E med CP437 och JSON-export inklusive underlag, fakturasnapshots och full audit. Extern SIE-validator/provimport återstår.
 
 Alla monetära operationer använder heltalsören och BigInt vid multiplikation/avrundning. Originalbelopp är hundradelar av originalvalutan; import stöder högst två decimaler och växelkurser högst sex. Automatisk valutafakturering saknas; valutakursdifferenser kan bokföras manuellt med separata konton 3960/7960. Fakturor och enskilda belopp har en gräns på 10 miljarder kr; all ackumulerad debet är begränsad till 1 000 miljarder kr. Även betalningar och rättelser förbrukar denna senare gräns. Dessa är uttryckliga gränser för den lokala versionen, inte företags- eller kreditgränser.
 
 PDF-fakturor använder latinska tecken, fast radbredd och sidbrytning. Tecken utanför stödd font avvisas för att undvika tyst förvanskning. Leverans-/tjänstedatum antas vara fakturadatum och framgår av PDF:en.
+
+### Rätta ett tidigare felaktigt räkenskapsår
+
+Balans har ett konfigurerat räkenskapsår. Ordinarie år omfattar tolv kalendermånader. När bokföringsskyldigheten inträder eller året läggs om kan perioden vara kortare eller omfatta högst arton månader. Vid upphörande kan den förkortas. Se [bokföringslagen 3 kap. 1–3 §§](https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/bokforingslag-19991078_sfs-1999-1078/#K3).
+
+Ett tidigare sparat ogiltigt intervall spärrar ny bokföring och SIE-export. Säkerhetskopiera databasen och ändra perioden via **Inställningar** till ett giltigt intervall som rymmer alla befintliga verifikationsdatum, fakturadatum och periodlås. Ändringen loggar tidigare och nya gränser. Om inget sådant intervall finns krävs redovisningsmässig utredning och en plan för att flytta data mellan år. JSON-export och säkerhetskopia finns tillgängliga för utredningen.
 
 ## Testa
 
@@ -60,7 +66,7 @@ Testsviten omfattar domänregler, HTTP, samtidiga betalningar/fastställelser, r
 
 ## Backup och återställning
 
-Automatisk lokal backup skapas vid serverstart och var 24:e timme så länge processen kör. Ingen automatisk radering görs. Underlag ligger som BLOB i databasen och ingår. Backup verifieras med integritetskontroll, främmande nycklar, verifikationsbalans och dokumenthashar. En manifestfil med SHA-256 skapas bredvid backupen.
+Automatisk lokal backup skapas vid serverstart och var 24:e timme så länge processen kör. Ingen automatisk radering görs. Underlag ligger som BLOB i databasen och ingår. Backup verifieras med integritetskontroll, främmande nycklar, verifikationsbalans, verifikations- och fakturanummerserier samt dokumenthashar. En manifestfil med SHA-256 skapas bredvid backupen.
 
 ```powershell
 node scripts/backup.mjs create

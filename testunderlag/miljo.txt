@@ -1,0 +1,12 @@
+node --check public/app.js exit=0
+1a70661b38bd86ba9ada8eb970f9f6140dac5fd7
+2026-11-19T07:43:14+00:00
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+Linux x86_64
+{"node":"v24.22.1","sqlite":"3.53.4","icu":"78.3"}
+Chromium 156.0.8078.79 built on Debian GNU/Linux 13 (trixie)
+Playwright 1.62.0

@@ -1,0 +1,33 @@
+Testkompassen AB
+KREDITFAKTURA 4
+Fakturadatum: 2026-10-04 Förfallodatum: 2026-10-04
+Leverans-/tjänstedatum: 2026-10-04 (samma som fakturadatum)
+Säljare: Testkompassen AB
+Org.nr: 559900-0006 Momsreg.nr: SE559900000601
+Bokföringsvägen 42, 111 11 Exempelstad
+Godkänd för F-skatt
+
+
+Kund: Fiktiv Skärgårdskund AB
+Org.nr: 559999-9903
+Påhittsvägen 7, 111 11 Exempelstad
+
+
+Kredit av faktura 3: Kreditering C
+Antal: 1 Enhetspris: 8000.00 SEK
+Beskattningsunderlag: -8000.00 SEK
+Moms 25 %: -2000.00 SEK
+TOTALT: -10000.00 SEK
+
+
+Betalningsuppgifter: FIKTIV BANKREFERENS
+Ange fakturanummer 4 vid betalning.
+Avser ursprunglig faktura 3. Full kreditering.
+
+
+Lokalt testsystem - syntetiska uppgifter. Granska före användning.
+
+
+
+
+Faktura 4 - sida 1 av 1
